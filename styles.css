@@ -1,13 +1,23 @@
+/* 使用CSS变量统一管理颜色和其他常用值 */
+:root {
+    --primary-color: rgba(0,0,0,0.7);
+    --secondary-color: #666;
+    --max-width: 900px;
+    --gradient-colors: #eafde1, #fffbb7, #d6edc8, #eafde1;
+}
+
 body, html {
     margin: 0;
     padding: 0;
     height: 100%;
     font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
-    background: linear-gradient(120deg, #eafde1, #fffbb7, #d6edc8, #eafde1);
+    /* 优化性能的渐变动画 */
+    background: linear-gradient(120deg, var(--gradient-colors));
     background-size: 400% 400%;
     animation: gradientShift 20s ease infinite;
     color: rgba(0,0,0,0.7);
     overflow-y: scroll;
+    will-change: background-position; /* 提示浏览器优化动画性能 */
 }
 
 @keyframes gradientShift {
@@ -22,6 +32,11 @@ body, html {
     padding: 0 20px;
     line-height: 1.6;
     font-size: 18px;
+}
+
+/* 使用更现代的选择器 */
+#container > * {
+    max-width: 100%;
 }
 
 h1 {
@@ -89,9 +104,56 @@ li {
 .animate-text {
     opacity: 0;
     animation: fadeIn 1s ease forwards;
+    will-change: opacity, transform;
 }
 
 /* 可以添加动画延迟，让文字依次出现 */
 .delay-1 { animation-delay: 0.2s; }
 .delay-2 { animation-delay: 0.4s; }
 .delay-3 { animation-delay: 0.6s; }
+
+/* 添加响应式设计 */
+@media (max-width: 768px) {
+    #container {
+        padding: 0 15px;
+        margin: 20px auto 40px;
+    }
+
+    h1 {
+        font-size: 2rem;
+    }
+}
+.particle {
+    position: fixed;
+    width: 8px;
+    height: 8px;
+    background: rgba(243, 143, 234, 0.5); // 调整透明度
+border-radius: 50%;
+    pointer-events: none;
+    animation: particleFade 0.4s forwards; // 缩短动画时间
+transform: translate(-50%, -50%);
+    filter: blur(1.5px);
+}
+
+@keyframes particleFade {
+    0% {
+        opacity: 1;
+        transform: translate(-50%, -50%) scale(1);
+    }
+    100% {
+        opacity: 0;
+        transform: translate(-50%, -50%) scale(1.5); // 调整放大比例
+    }
+}
+
+.fade-section {
+    opacity: 0;
+    transform: translateY(20px);
+    transition: opacity 0.8s ease, transform 0.8s ease;
+    will-change: opacity, transform;
+}
+
+.fade-section.visible {
+    opacity: 1;
+    transform: translateY(0);
+}
