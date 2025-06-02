@@ -127,11 +127,11 @@ li {
     position: fixed;
     width: 8px;
     height: 8px;
-    background: rgba(243, 143, 234, 0.5); // 调整透明度
+    background: rgba(243, 143, 234, 0.5); /* 调整透明度 */
 border-radius: 50%;
     pointer-events: none;
-    animation: particleFade 0.4s forwards; // 缩短动画时间
-transform: translate(-50%, -50%);
+    animation: particleFade 0.4s forwards; /* 缩短动画时间 */
+    transform: translate(-50%, -50%);
     filter: blur(1.5px);
 }
 
@@ -142,7 +142,7 @@ transform: translate(-50%, -50%);
     }
     100% {
         opacity: 0;
-        transform: translate(-50%, -50%) scale(1.5); // 调整放大比例
+        transform: translate(-50%, -50%) scale(1.5); /* 调整放大比例 */
     }
 }
 
@@ -157,3 +157,29 @@ transform: translate(-50%, -50%);
     opacity: 1;
     transform: translateY(0);
 }
+#toast {
+    position: fixed;
+    top: -60px; /* 初始隐藏 */
+    left: 50%;
+    transform: translateX(-50%);
+    background: rgba(255, 204, 0, 0.3); /* 半透明黄 */
+    backdrop-filter: blur(10px); /* 毛玻璃模糊 */
+    -webkit-backdrop-filter: blur(10px);
+    border-radius: 30px; /* 胶囊形 */
+    padding: 12px 30px;
+    color: #333;
+    font-weight: 600;
+    font-size: 14px;
+    box-shadow: 0 8px 15px rgba(255, 204, 0, 0.3);
+    border: 1px solid rgba(255, 204, 0, 0.5);
+    z-index: 10000;
+    transition: top 0.5s ease;
+    user-select: none;
+    cursor: default;
+    white-space: nowrap;
+}
+
+#toast.show {
+    top: 20px; /* 滑入 */
+}
+
