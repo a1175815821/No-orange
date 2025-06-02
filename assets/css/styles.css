@@ -1,0 +1,184 @@
+/* 使用CSS变量统一管理颜色和其他常用值 */
+:root {
+    --primary-color: rgba(0,0,0,0.7);
+    --secondary-color: #666;
+    --max-width: 900px;
+    --gradient-colors: #eafde1, #fffbb7, #d6edc8, #eafde1;
+}
+
+body, html {
+    margin: 0;
+    padding: 0;
+    height: 100%;
+    font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+    /* 优化性能的渐变动画 */
+    background: linear-gradient(120deg, var(--gradient-colors));
+    background-size: 400% 400%;
+    animation: gradientShift 20s ease infinite;
+    color: rgba(0,0,0,0.7);
+    overflow-y: scroll;
+    will-change: background-position; /* 提示浏览器优化动画性能 */
+}
+
+@keyframes gradientShift {
+    0% {background-position:0% 50%}
+    50% {background-position:100% 50%}
+    100% {background-position:0% 50%}
+}
+
+#container {
+    max-width: 900px;
+    margin: 40px auto 80px;
+    padding: 0 20px;
+    line-height: 1.6;
+    font-size: 18px;
+}
+
+/* 使用更现代的选择器 */
+#container > * {
+    max-width: 100%;
+}
+
+h1 {
+    font-weight: 700;
+    font-size: 2.8rem;
+    text-align: center;
+    margin-bottom: 0.6em;
+}
+
+h2 {
+    margin-top: 1.6em;
+    font-weight: 600;
+}
+
+ul {
+    padding-left: 1.2em;
+}
+
+li {
+    margin-bottom: 0.4em;
+}
+
+#thanks {
+    text-align: center;
+    margin-top: 2em;
+    font-weight: 600;
+    font-size: 1.2rem;
+}
+
+#footer {
+    max-width: 900px;
+    margin: 0 auto 40px;
+    text-align: center;
+    font-size: 14px;
+    color: rgba(0,0,0,0.5);
+}
+
+.section-title {
+    color: #666;
+    font-size: 1.2rem;
+    font-weight: 600;
+    margin-top: 1em;
+    margin-bottom: 0.5em;
+    text-align: center;
+}
+
+.intro-text {
+    text-align: center;
+    margin-bottom: 2em;
+}
+
+/* 添加到你的 styles.css 文件中 */
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* 为需要添加动画的文字元素添加以下样式 */
+.animate-text {
+    opacity: 0;
+    animation: fadeIn 1s ease forwards;
+    will-change: opacity, transform;
+}
+
+/* 可以添加动画延迟，让文字依次出现 */
+.delay-1 { animation-delay: 0.2s; }
+.delay-2 { animation-delay: 0.4s; }
+.delay-3 { animation-delay: 0.6s; }
+
+/* 添加响应式设计 */
+@media (max-width: 768px) {
+    #container {
+        padding: 0 15px;
+        margin: 20px auto 40px;
+    }
+
+    h1 {
+        font-size: 2rem;
+    }
+}
+.particle {
+    position: fixed;
+    width: 8px;
+    height: 8px;
+    background: rgba(243, 143, 234, 0.5); /* 调整透明度 */
+border-radius: 50%;
+    pointer-events: none;
+    animation: particleFade 0.4s forwards; /* 缩短动画时间 */
+    transform: translate(-50%, -50%);
+    filter: blur(1.5px);
+}
+
+@keyframes particleFade {
+    0% {
+        opacity: 1;
+        transform: translate(-50%, -50%) scale(1);
+    }
+    100% {
+        opacity: 0;
+        transform: translate(-50%, -50%) scale(1.5); /* 调整放大比例 */
+    }
+}
+
+.fade-section {
+    opacity: 0;
+    transform: translateY(20px);
+    transition: opacity 0.8s ease, transform 0.8s ease;
+    will-change: opacity, transform;
+}
+
+.fade-section.visible {
+    opacity: 1;
+    transform: translateY(0);
+}
+#toast {
+    position: fixed;
+    top: -60px; /* 初始隐藏 */
+    left: 50%;
+    transform: translateX(-50%);
+    background: rgba(255, 204, 0, 0.3); /* 半透明黄 */
+    backdrop-filter: blur(10px); /* 毛玻璃模糊 */
+    -webkit-backdrop-filter: blur(10px);
+    border-radius: 30px; /* 胶囊形 */
+    padding: 12px 30px;
+    color: #333;
+    font-weight: 600;
+    font-size: 14px;
+    box-shadow: 0 8px 15px rgba(255, 204, 0, 0.3);
+    border: 1px solid rgba(255, 204, 0, 0.5);
+    z-index: 10000;
+    transition: top 0.5s ease;
+    user-select: none;
+    cursor: default;
+    white-space: nowrap;
+}
+
+#toast.show {
+    top: 20px; /* 滑入 */
+}

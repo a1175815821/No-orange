@@ -1,9 +1,10 @@
 //版本更新
-const siteVersion = '20250602c'; // 你更新网页时改这个值
+const siteVersion = '20250602c';
 
 window.onload = () => {
     const savedVersion = localStorage.getItem('siteVersion');
-    if (savedVersion !== siteVersion) {
+    // 增加 savedVersion 为 null 的判断
+    if (!savedVersion || savedVersion !== siteVersion) {
         localStorage.setItem('siteVersion', siteVersion);
         showToast();
     }
@@ -26,28 +27,6 @@ function showToast() {
         }, { once: true });
     }, 3100);
 }
-
-//警告
-window.onload = () => {
-    const toast = document.createElement('div');
-    toast.id = 'toast';
-    toast.textContent = '由于 CDN 缓存原因，查看最新效果可能需要 Ctrl + F5 强制刷新浏览器缓存';
-    document.body.appendChild(toast);
-
-    // 触发滑入动画
-    setTimeout(() => {
-        toast.classList.add('show');
-    }, 100);
-
-    // 滑出并删除节点
-    setTimeout(() => {
-        toast.classList.remove('show');
-        // 动画结束后移除元素
-        toast.addEventListener('transitionend', () => {
-            toast.remove();
-        }, { once: true });
-    }, 2100);
-};
 
 //拖尾
 const cursor = document.querySelector('.cursor-follow');
