@@ -1,5 +1,5 @@
-//版本更新
-const siteVersion = '20250602c';
+﻿//版本更新
+const siteVersion = '20251129c';
 
 window.onload = () => {
     const savedVersion = localStorage.getItem('siteVersion');
