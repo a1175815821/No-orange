@@ -182,3 +182,89 @@ border-radius: 50%;
 #toast.show {
     top: 20px; /* 滑入 */
 }
+
+/* --- 资源库炫光按钮样式 Start --- */
+
+/* 按钮主体 */
+.aurora-btn {
+    position: fixed; /* 固定在窗口右上角 */
+    top: 20px;
+    right: 20px;
+    padding: 10px 24px;
+    text-decoration: none;
+    border-radius: 50px; /* 胶囊形状 */
+    color: #fff;
+    font-weight: 600;
+    letter-spacing: 1px;
+    font-size: 15px;
+    z-index: 999; /* 保证在内容之上，但在开屏动画之下 */
+    overflow: hidden; /* 隐藏溢出的光效 */
+    transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+
+    /* 核心：流动渐变背景 (深蓝 -> 浅青 -> 深蓝) */
+    background: linear-gradient(90deg, #4facfe, #00f2fe, #4facfe);
+    background-size: 200% auto;
+    animation: flowLight 3s linear infinite; /* 流动动画 */
+
+    /* 初始光晕 */
+    box-shadow: 0 5px 15px rgba(79, 172, 254, 0.4);
+}
+
+/* 流动动画关键帧 */
+@keyframes flowLight {
+    0% { background-position: 0% center; }
+    100% { background-position: 200% center; }
+}
+
+/* 鼠标悬停状态：更亮，轻微上浮 */
+.aurora-btn:hover {
+    box-shadow: 0 8px 25px rgba(0, 242, 254, 0.6);
+    transform: translateY(-2px) scale(1.05);
+    color: #fff;
+}
+
+/* 按钮内部文字层级提升 */
+.aurora-btn span {
+    position: relative;
+    z-index: 2;
+}
+
+/* 点击时的波纹特效层 */
+.aurora-btn::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 0;
+    height: 0;
+    background: rgba(255, 255, 255, 0.6);
+    border-radius: 50%;
+    transform: translate(-50%, -50%);
+    opacity: 0;
+    transition: none; /* 默认无过渡 */
+}
+
+/* 点击激活状态 */
+.aurora-btn:active {
+    transform: scale(0.95); /* 轻微回弹 */
+    box-shadow: 0 2px 10px rgba(79, 172, 254, 0.3);
+}
+
+/* 点击时的波纹扩散动画 */
+.aurora-btn:active::after {
+    width: 300px; /* 扩散范围 */
+    height: 300px;
+    opacity: 0;
+    transition: width 0.4s ease-out, height 0.4s ease-out, opacity 0.5s ease-out;
+}
+
+/* 移动端适配：防止按钮挡住标题，适当缩小 */
+@media (max-width: 768px) {
+    .aurora-btn {
+        top: 15px;
+        right: 15px;
+        padding: 8px 18px;
+        font-size: 13px;
+    }
+}
+/* --- 资源库炫光按钮样式 End --- */
