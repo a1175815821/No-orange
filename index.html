@@ -1,102 +1,426 @@
 <!DOCTYPE html>
-<html lang="zh">
+<html lang="zh-CN">
 <head>
-    <link rel="icon" href="/favicon.ico" type="image/x-icon" />
     <meta charset="UTF-8" />
+    <title>Yingxue · Anime Glassmorphism Home</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>别开黄灯!</title>
-    <link rel="stylesheet" href="assets/css/styles.css" />
-    <link rel="stylesheet" href="assets/css/Pageload.css" />
+
+    <!-- 可选：导入一款英文标题字体（如果不想联网可以删除这一行） -->
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;700&display=swap" rel="stylesheet">
+
+
 </head>
+<link rel="stylesheet" href="assets/style.css">
 <body>
-<a href="/Asset/" class="aurora-btn">
-    <span>资源库 Testing</span>
-</a>
-<div id="container">
-    <h1 class="animate-text">🟠 请你别开黄灯！</h1>
-    <div class="intro-text">
-        <p class="animate-text delay-1">请不要在 VRChat 中使用黄灯状态。</p>
-        <p class="animate-text delay-2">相反，请将您的状态更改为更清晰和礼貌的状态！</p>
-    </div>
+    <!-- 星光粒子背景层 -->
+    <div class="star-layer"></div>
 
-    <section>
-        <h2 class="section-title">为什么别用黄灯？</h2>
-        <p>黄灯不能准确表示您的在线状态。与其他状态不同，黄灯状态容易引起混淆和不一致。有些人用它来表示自己很忙或不想被打扰，而另一些人则用它来筛选可以加入他们的人，或者仅仅是为了知道谁加入了他们。这可能会导致误解或错过与其他人互动的机会。</p>
-    </section>
+    <!-- 顶部导航栏 -->
+    <header id="top">
+        <div class="container">
+            <div class="nav">
+                <div class="nav-logo">
+                    <div class="nav-logo-symbol"></div>
+                    <div class="nav-title">YINGXUE</div>
+                </div>
 
-    <section>
-        <h2 class="section-title">黄灯浪费他人的时间</h2>
-        <p>对于想加入您的好友来说，黄灯状态令人沮丧。这会导致人们反复请求邀请，希望您能接受他们。这会浪费他们的时间和精力，同时也会让他们感到自己不被需要或被拒绝，因为他们一直在等待一个永远不会到来的邀请。</p>
-    </section>
+                <!-- PC 端导航链接 -->
+                <nav class="nav-links">
+                    <a href="#home" class="nav-link">主页</a>
+                    <a href="#about" class="nav-link">关于我</a>
+                    <a href="#projects" class="nav-link">作品</a>
+                    <a href="#skills" class="nav-link">技能</a>
+                    <a href="#moods" class="nav-link">心情</a>
+                    <a href="#contact" class="nav-link">联系</a>
+                </nav>
 
-    <section>
-        <h2 class="section-title">黄灯让您显得难以接近</h2>
-        <p>它会让您看起来像是不想被打扰，这会阻止其他好友尝试联系您。它还会让您的朋友觉得他们的不断请求很打扰你，最终不再去请求。黄灯状态也会让您在人们的好友列表中沉到底部。</p>
-    </section>
+                <!-- 移动端菜单按钮 -->
+                <button class="nav-toggle" aria-label="切换导航">
+                    <span></span>
+                    <span></span>
+                    <span></span>
+                </button>
+            </div>
 
-    <section>
-        <h2 class="section-title">黄灯让您变得反社交</h2>
-        <p>在您和其他人之间设置障碍意味着您将错过结识新朋友或与旧朋友重新联系的机会。您还将错过其他好友可以提供的更多不同体验的人和事。</p>
-    </section>
+            <!-- 移动端折叠菜单 -->
+            <nav class="nav-links-mobile">
+                <a href="#home" class="nav-link">主页</a>
+                <a href="#about" class="nav-link">关于我</a>
+                <a href="#projects" class="nav-link">作品</a>
+                <a href="#skills" class="nav-link">技能</a>
+                <a href="#moods" class="nav-link">心情</a>
+                <a href="#contact" class="nav-link">联系</a>
+            </nav>
+        </div>
+    </header>
 
-    <section>
-        <h2 class="section-title">黄灯破坏了 VRChat 的自发性</h2>
-        <p>您为自己和他人创造了一个障碍，让他们无法体验 VRChat 提供的意想不到和独一无二的东西。您也剥夺了自己和他人与外向的人见面所带来的乐趣和兴奋感（其中大多数人永远不会请求黄灯用户）。</p>
-    </section>
+    <main>
+        <!-- 英雄区 / 主页 -->
+        <section id="home" class="hero">
+            <div class="container">
+                <div class="hero-inner">
+                    <!-- 毛玻璃欢迎卡片 -->
+                    <div class="glass-card hero-card reveal-on-scroll">
+                        <div class="hero-eyebrow">WELCOME TO MY ANIME HOME</div>
+                        <h1 class="hero-title">
+                            你好，<span>我是映血</span>。
+                        </h1>
+                        <p class="hero-subtitle">
+                            偏爱深夜与霓虹，也喜欢代码和二次元。<br />
+                            在像素与星光之间，把碎碎念写进网页和世界。
+                        </p>
+                        <div class="hero-tagline">
+                            FRONT-END · ANIME · VRCHAT · GLASSMORPHISM
+                        </div>
+                        <div class="hero-actions">
+                            <button class="btn" data-scroll-target="#projects">查看作品</button>
+                            <button class="btn btn-outline" data-scroll-target="#contact">联系我</button>
+                        </div>
+                    </div>
 
-    <section>
-        <h2 class="section-title">黄灯是不必要的</h2>
-        <p>有许多其他方法可以表示您的在线状态并保护您的隐私。例如，您可以设置一个自定义状态来描述您的在线状态，或创建一个仅限邀请或邀请+实例。</p>
-    </section>
+                    <!-- 右侧动漫风头像装饰 -->
+                    <div class="hero-aside reveal-on-scroll">
+                        <div class="hero-avatar-wrap">
+                            <div class="hero-orb"></div>
+                            <div class="hero-avatar-circle">
+                                <!-- 可以替换为真实头像：<img src="xxx" alt="Avatar" /> -->
+                                <span>🌙</span>
+                            </div>
+                            <div class="hero-glow-ring"></div>
+                            <div class="hero-floating-badge">
+                                LV. <span>18</span> · DREAMER
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
 
-    <section>
-        <h2 class="section-title">黄灯让您变得隐形且被忽视</h2>
-        <p>您只是一个名字，永远在一个私密世界里，在人们的好友列表底部。没有人看到您在做什么，您在哪里，或者您和谁在一起。了解您或尝试加入您最终变得比麻烦或不自在更不值得，您成为另一个无关紧要、被遗忘的名字，占据了人们社交菜单上的宝贵空间。</p>
-    </section>
+        <!-- 关于我区域 -->
+        <section id="about">
+            <div class="container">
+                <div class="section-header">
+                    <div class="section-eyebrow">ABOUT ME</div>
+                    <h2 class="section-title">关于映血</h2>
+                    <p class="section-subtitle">一点点设定，一点点中二，还有一点点温柔。</p>
+                </div>
 
-    <section>
-        <h2 class="section-title">So..,所以那些借口呢？</h2>
+                <div class="glass-card about-card reveal-on-scroll">
+                    <!-- 左侧装饰头像 -->
+                    <div class="about-avatar-shell">
+                        <div class="about-avatar-core"></div>
+                    </div>
 
-        <div class="fade-section">
-        <p><strong>“我有多个朋友圈……”</strong><br>
-            如果您觉得有必要把您的朋友分类，您最好创建多个账户，或者使用群组系统并创建私人群组实例。这样，您想一起出去玩的朋友群体将能够自由地加入您，而那些不是的朋友将看到您在一个黄灯的实例中。您还可以将您的朋友互相介绍，并找到他们之间的共同点或兴趣。您不必限制自己只交往一个朋友群体，也不必把其他人排除在您的社交圈之外。</p></div>
+                    <!-- 右侧文字介绍 -->
+                    <div class="about-meta">
+                        <h3>映血 · Yingxue</h3>
+                        <div class="about-tags">
+                            <span class="about-tag">动漫 / Anime Lover</span>
+                            <span class="about-tag">前端学习中</span>
+                            <span class="about-tag">VRChat 玩家</span>
+                            <span class="about-tag">夜猫子</span>
+                        </div>
+                        <p class="about-text">
+                            喜欢在角落里安静地观察世界，也喜欢把情绪藏进背景音乐和渐变色里。
+                            偶尔写点代码，让网页长出一点光，一点雾，一点只属于自己的氛围感。
+                            如果可以的话，希望做一个温柔又有趣的「二次元小站管理员」。
+                        </p>
+                        <p class="about-text">
+                            世界很吵，我就慢吞吞地往前走。哪怕是普通人，也可以拥有自己发光的方式——
+                            只要页面还在加载，故事就还没结束。
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </section>
 
-        <div class="fade-section">
-        <p><strong>“直接请求我！”</strong><br>
-            当您处于黄灯状态时，您隐藏了您在做什么、和谁在一起以及您在哪里。人们不知道他们是否适合他们的世界或群体，所以请求加入变成了一种冒险。别人想知道您在做什么，然后再用邀请请求打扰您。这样说对您也不好，因为它会导致不断请求，结果您的邀请被忽略，因为您的朋友不想加入您特定的世界。</p></div>
+        <!-- 作品展示区域 -->
+        <section id="projects">
+            <div class="container">
+                <div class="section-header">
+                    <div class="section-eyebrow">GALLERY</div>
+                    <h2 class="section-title">作品 / 小实验</h2>
+                    <p class="section-subtitle">这里可以放你的项目链接、界面设计、或者只是一些有趣的 Demo。</p>
+                </div>
 
-        <div class="fade-section">
-        <p><strong>“我在 ERP！”</strong><br>
-            您反正不会接受邀请，为什么还要用黄灯浪费别人的时间呢？直接使用红灯表示您很忙，不想被打扰。</p></div>
+                <div class="projects-grid">
+                    <!-- 作品卡片示例，可自行复制修改 -->
+                    <article class="glass-card project-card reveal-on-scroll">
+                        <div class="project-label">PROJECT 01</div>
+                        <h3 class="project-title">星空主页 · Starry Landing</h3>
+                        <p class="project-desc">
+                            一页式星空主页，使用渐变星云和毛玻璃按钮，模拟「在宇宙登陆网站」的感觉。
+                        </p>
+                        <div class="project-meta">
+                            <span>前端小练习</span>
+                            <span class="project-pill">HTML / CSS</span>
+                        </div>
+                    </article>
 
-        <div class="fade-section">
-        <p><strong>“我不希望某人加入”</strong><br>
-            如果有人让您感到非常不舒服，以至于您要主动避开他们，那他们就不是您的朋友。像个成年人一样和他们讨论这个问题，或者解除他们的好友关系，而不是避开他们并给您所有其他真正的朋友带来麻烦。您还可以屏蔽或静音任何真正打扰您的人。</p></div>
+                    <article class="glass-card project-card reveal-on-scroll">
+                        <div class="project-label">PROJECT 02</div>
+                        <h3 class="project-title">VRChat Avatar 列表</h3>
+                        <p class="project-desc">
+                            为自己喜欢的 VRChat Avatar 做的数据库检索页面，用标签和卡片把喜欢的人物都收藏起来。
+                        </p>
+                        <div class="project-meta">
+                            <span>数据展示</span>
+                            <span class="project-pill">SQL / UI</span>
+                        </div>
+                    </article>
 
-        <div class="fade-section">
-        <p><strong>“我正在制作一个模型/世界”</strong><br>
-            如果您正在 Unity 中处理您的模型，并且不想被其他用户打扰或分心，您不必使用黄灯状态。如果您想表示自己很忙或不想被打扰，可以将您的状态设置为红灯。如果您想与特定的人一起测试您的创作，或者在他们准备好之前保持私密，还可以将您的世界访问权限设置为仅限邀请或邀请+。</p></div>
+                    <article class="glass-card project-card reveal-on-scroll">
+                        <div class="project-label">PROJECT 03</div>
+                        <h3 class="project-title">Emo BGM 播放页</h3>
+                        <p class="project-desc">
+                            一个可以边看文字边听歌的小页面，背景跟着音乐律动，适合深夜一个人循环播放。
+                        </p>
+                        <div class="project-meta">
+                            <span>音乐氛围</span>
+                            <span class="project-pill">UI / 动效</span>
+                        </div>
+                    </article>
 
-        <div class="fade-section">
-        <p><strong>“我想知道谁加入了”</strong><br>
-            您也不需要黄灯状态来做到这一点！在您的 HUD 上启用加入通知，以便在朋友加入您的房间时收到通知。这样就没有惊喜了。</p></div>
-    </section>
+                    <article class="glass-card project-card reveal-on-scroll">
+                        <div class="project-label">PROJECT 04</div>
+                        <h3 class="project-title">个人日记 · Secret Garden</h3>
+                        <p class="project-desc">
+                            用密码锁住的 Web 日记本，页面里只有你和一些悄悄长出来的小花朵。
+                        </p>
+                        <div class="project-meta">
+                            <span>私密空间</span>
+                            <span class="project-pill">Design</span>
+                        </div>
+                    </article>
 
-    <div id="thanks">
-        <p>感谢阅读，请广而告之</p>
-    </div>
+                    <article class="glass-card project-card reveal-on-scroll">
+                        <div class="project-label">PROJECT 05</div>
+                        <h3 class="project-title">Anime Quote Generator</h3>
+                        <p class="project-desc">
+                            随机抽取动漫台词的小工具，在低气压的时候点一点，说不定会被某句台词拯救。
+                        </p>
+                        <div class="project-meta">
+                            <span>小工具</span>
+                            <span class="project-pill">JS / UI</span>
+                        </div>
+                    </article>
 
-    <footer style="text-align: center; margin-top: 1.5em; font-size: 0.95rem;">
-        由 Yingxue 制作 ｜ 💻
-        <a href="https://github.com/a1175815821/No-orange" target="_blank">GitHub</a> ｜
-        ✉️ a1175815821@126.com
+                    <article class="glass-card project-card reveal-on-scroll">
+                        <div class="project-label">PROJECT 06</div>
+                        <h3 class="project-title">玻璃拟态组件库</h3>
+                        <p class="project-desc">
+                            试着整理一套自己风格的毛玻璃组件：卡片、按钮、标签，方便以后快速搭页面。
+                        </p>
+                        <div class="project-meta">
+                            <span>样式探索</span>
+                            <span class="project-pill">Glassmorphism</span>
+                        </div>
+                    </article>
+                </div>
+            </div>
+        </section>
+
+        <!-- 技能 / 标签云区域 -->
+        <section id="skills">
+            <div class="container">
+                <div class="section-header">
+                    <div class="section-eyebrow">SKILLS & INTERESTS</div>
+                    <h2 class="section-title">技能 / 兴趣标签</h2>
+                    <p class="section-subtitle">标签只是起点，真正的世界在代码、作品和人心里面。</p>
+                </div>
+
+                <div class="glass-card skills-cloud reveal-on-scroll">
+                    <div class="skills-list">
+                        <div class="skill-badge"><span>HTML / CSS</span></div>
+                        <div class="skill-badge"><span>Glassmorphism</span></div>
+                        <div class="skill-badge"><span>Anime UI</span></div>
+                        <div class="skill-badge"><span>VRChat</span></div>
+                        <div class="skill-badge"><span>JavaScript</span></div>
+                        <div class="skill-badge"><span>Responsive Design</span></div>
+                        <div class="skill-badge"><span>Emo BGM</span></div>
+                        <div class="skill-badge"><span>Dark Theme</span></div>
+                        <div class="skill-badge"><span>Pixel Art</span></div>
+                        <div class="skill-badge"><span>UI / UX</span></div>
+                        <div class="skill-badge"><span>夜猫子模式</span></div>
+                        <div class="skill-badge"><span>安静观察</span></div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- 时间轴 + 动漫心情语录 -->
+        <section id="moods">
+            <div class="container">
+                <div class="section-header">
+                    <div class="section-eyebrow">TIMELINE & QUOTES</div>
+                    <h2 class="section-title">时间轴 / 动漫心情</h2>
+                    <p class="section-subtitle">一点成长记录，一点台词收藏，慢慢把自己变成喜欢的样子。</p>
+                </div>
+
+                <div class="timeline-quotes">
+                    <!-- 左侧：时间轴 -->
+                    <div class="glass-card reveal-on-scroll">
+                        <div class="timeline">
+                            <div class="timeline-item">
+                                <div class="timeline-dot"></div>
+                                <div class="timeline-content">
+                                    <div class="timeline-year">2023</div>
+                                    <div class="timeline-title">第一次认真学前端</div>
+                                    <div class="timeline-desc">
+                                        把 div 和 span 当积木堆，从 Hello World 开始，发现「原来网页可以这么好看」。
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="timeline-item">
+                                <div class="timeline-dot"></div>
+                                <div class="timeline-content">
+                                    <div class="timeline-year">2024</div>
+                                    <div class="timeline-title">搭建第一个个人主页</div>
+                                    <div class="timeline-desc">
+                                        学会了给自己留一个小角落，背景是星空，按钮是毛玻璃，所有 emo 都在这里缓慢消化。
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="timeline-item">
+                                <div class="timeline-dot"></div>
+                                <div class="timeline-content">
+                                    <div class="timeline-year">2025</div>
+                                    <div class="timeline-title">VRChat & 更多连接</div>
+                                    <div class="timeline-desc">
+                                        在虚拟世界里结识了重要的人，明白「像素组成的拥抱」有时候也很真诚。
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="timeline-item">
+                                <div class="timeline-dot"></div>
+                                <div class="timeline-content">
+                                    <div class="timeline-year">未来</div>
+                                    <div class="timeline-title">还没写完的故事</div>
+                                    <div class="timeline-desc">
+                                        想做更多有温度的页面，也想好好照顾好现在的自己。只要页面没关闭，更新就不会停止。
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 右侧：动漫语录卡片 -->
+                    <div class="glass-card reveal-on-scroll">
+                        <div class="quotes-list">
+                            <div class="quote-card">
+                                <p class="quote-text">
+                                    即使人生是一出悲剧，也要<mark>演得漂亮一点</mark>，这样至少能被自己的光照亮。
+                                </p>
+                                <div class="quote-meta">—— 改编自某个很重要的句子</div>
+                            </div>
+
+                            <div class="quote-card">
+                                <p class="quote-text">
+                                    去凝视黑暗吧。谁都未曾见过的光，只存在于真正的黑暗之中。
+                                </p>
+                                <div class="quote-meta">—— 心中的台词</div>
+                            </div>
+
+                            <div class="quote-card">
+                                <p class="quote-text">
+                                    大器晚成也好，永远到不了山顶也罢。<mark>路途本身就很重要</mark>，能看到的风景只有你自己知道。
+                                </p>
+                                <div class="quote-meta">—— 给未来的自己</div>
+                            </div>
+
+                            <div class="quote-card">
+                                <p class="quote-text">
+                                    这个世界总要允许普通人存在吧，只是普通人也可以有一点点任性，保留属于自己的小小宇宙。
+                                </p>
+                                <div class="quote-meta">—— 某个深夜的想法</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- 联系方式区域 -->
+        <section id="contact">
+            <div class="container">
+                <div class="section-header">
+                    <div class="section-eyebrow">CONTACT</div>
+                    <h2 class="section-title">联系我</h2>
+                    <p class="section-subtitle">有想说的话，可以慢慢打在这里；有想分享的歌，也欢迎一起听。</p>
+                </div>
+
+                <div class="contact-layout">
+                    <!-- 左侧：联系表单 -->
+                    <div class="glass-card contact-form-card reveal-on-scroll">
+                        <form class="contact-form" id="contact-form">
+                            <div class="field-group">
+                                <label class="field-label" for="name">姓名 / Name</label>
+                                <input class="input" id="name" name="name" type="text" placeholder="可以写昵称就好～" />
+                            </div>
+
+                            <div class="field-group">
+                                <label class="field-label" for="email">邮箱 / Email</label>
+                                <input class="input" id="email" name="email" type="email" placeholder="用来接收回复（只是示例，不会真的发）" />
+                            </div>
+
+                            <div class="field-group">
+                                <label class="field-label" for="message">留言 / Message</label>
+                                <textarea class="textarea" id="message" name="message" placeholder="想说什么都可以：最近的心情、想法、或者只是打一串符号也行。"></textarea>
+                            </div>
+
+                            <button type="submit" class="btn">
+                                发送留言（示例）
+                            </button>
+
+                            <p class="contact-note">
+                                * 当前表单只是前端示例，不会真的发送到服务器，主要是方便以后接后端。
+                            </p>
+                        </form>
+                    </div>
+
+                    <!-- 右侧：社交按钮 / 文本 -->
+                    <aside class="glass-card contact-social-card reveal-on-scroll">
+                        <div>
+                            <h3 style="margin-bottom: 8px;">其他小角落</h3>
+                            <p class="contact-social-text">
+                                这里可以放上你的 QQ、邮箱、GitHub 或其他社交平台。<br />
+                                如果哪天你不太想说话，也可以悄悄来这里逛一圈就走。
+                            </p>
+                        </div>
+
+                        <div>
+                            <div class="social-icons">
+                                <!-- 可以把 title 替换成你的账号说明 -->
+                                <button class="social-btn" type="button" title="QQ">
+                                    ✨
+                                </button>
+                                <button class="social-btn" type="button" title="Email">
+                                    📧
+                                </button>
+                                <button class="social-btn" type="button" title="GitHub">
+                                    🐱
+                                </button>
+                                <button class="social-btn" type="button" title="VRChat">
+                                    🕶️
+                                </button>
+                            </div>
+                            <p class="contact-note" style="margin-top: 10px;">
+                                * 这里只是图标占位。后面你可以给按钮加上链接：<code>&lt;a href="..."&gt;</code> 包裹即可。
+                            </p>
+                        </div>
+                    </aside>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <!-- 页脚 -->
+    <footer>
+        © 2025 Yingxue · Designed with love, anime vibes & a little bit of glass.
     </footer>
-</div>
-
-<div class="cursor-follow"></div>
-
-<script src="assets/js/script.js"></script>
-<script src="assets/js/Pageload.js"></script>
-
+    <script src="assets/main.js"></script>
 </body>
 </html>
