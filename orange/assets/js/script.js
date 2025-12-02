@@ -1,5 +1,5 @@
 ﻿//版本更新
-const siteVersion = '20251129c';
+const siteVersion = '20251201a';
 
 window.onload = () => {
     const savedVersion = localStorage.getItem('siteVersion');
@@ -13,7 +13,7 @@ window.onload = () => {
 function showToast() {
     const toast = document.createElement('div');
     toast.id = 'toast';
-    toast.textContent = '由于 CDN 缓存原因，查看最新效果可能需要 Ctrl + F5 强制刷新浏览器缓存';
+    toast.textContent = '第一次访问吗？可以看看写的哦~';
     document.body.appendChild(toast);
 
     setTimeout(() => {

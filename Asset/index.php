@@ -239,6 +239,10 @@ function renderResults($results, $search_term, $total_pages, $current_page, $tot
             <input type="text" name="q" id="search-input" placeholder="输入模型名称、作者或ID..." value="<?php echo htmlspecialchars($search_term); ?>">
             <button type="submit">搜 索</button>
         </form>
+    <div class="tips">
+        Tips：数据库截至 2024/10/12，共有 <strong>1,325,419</strong> 条记录。
+    </div>
+
 
         <?php if(!empty($error)): ?>
             <div style="color: white; background: #e57373; padding: 15px; border-radius: 10px; margin-top: 20px; text-align: center; font-weight: bold;">
