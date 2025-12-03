@@ -33,7 +33,6 @@ body {
 
 a {
   color: inherit;
-  text-decoration: none;
 }
 
 .backdrop {
@@ -112,10 +111,6 @@ a {
   cursor: pointer;
   box-shadow: 0 10px 30px rgba(0, 0, 0, 0.35);
   transition: transform 0.2s ease, box-shadow 0.2s ease;
-  text-decoration: none;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
 }
 .btn:hover { transform: translateY(-2px) scale(1.01); box-shadow: 0 20px 40px rgba(0,0,0,0.4); }
 .btn:active { transform: translateY(0); }

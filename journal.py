@@ -452,6 +452,14 @@ class GardenHandler(SimpleHTTPRequestHandler):
             (session["username"],),
         )
         row = cur.fetchone()
+        if not row or not verify_password(password, row[1]):
+            conn.close()
+            return self.send_json({"error": "账号或密码错误"}, 401)
+        cur.execute(
+            "UPDATE users SET last_login_ip=?, last_login_at=CURRENT_TIMESTAMP WHERE id=?",
+            (ip, row[0]),
+        )
+        conn.commit()
         conn.close()
         if not row:
             return self.send_json({"error": "未找到用户"}, 404)
@@ -544,38 +552,23 @@ class GardenHandler(SimpleHTTPRequestHandler):
         diary_id = path.rsplit("/", 1)[-1]
         conn = sqlite3.connect(DB_PATH)
         cur = conn.cursor()
-        cur.execute(
-            "SELECT author_name, title, content, is_public FROM diaries WHERE id=?",
-            (diary_id,),
-        )
-        diary_row = cur.fetchone()
-        if not diary_row:
+        cur.execute("SELECT author_name FROM diaries WHERE id=?", (diary_id,))
+        owner = cur.fetchone()
+        if not owner:
             conn.close()
             return self.send_json({"error": "未找到日记"}, 404)
-        owner, current_title, current_content, current_public = diary_row
-        if owner != session["username"]:
+        if owner[0] != session["username"]:
             conn.close()
             return self.send_json({"error": "无权编辑他人日记"}, 403)
         data = self.json_body()
-        title = data.get("title")
-        if title is None or not str(title).strip():
-            title = (current_title or "无题").strip()[:80]
-        else:
-            title = str(title).strip()[:80]
-
-        content = data.get("content")
-        if content is None:
-            content = (current_content or "").strip()
-        else:
-            content = str(content).strip()
-
-        is_public = current_public
-        if "is_public" in data:
-            is_public = 1 if data.get("is_public") else 0
-
         cur.execute(
             "UPDATE diaries SET title=?, content=?, is_public=?, updated_at=CURRENT_TIMESTAMP WHERE id=?",
-            (title, content, is_public, diary_id),
+            (
+                (data.get("title") or "无题")[:80],
+                (data.get("content") or "").strip(),
+                1 if data.get("is_public") else 0,
+                diary_id,
+            ),
         )
         conn.commit()
         conn.close()
