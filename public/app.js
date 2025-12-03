@@ -16,6 +16,26 @@ const state = {
   me: null,
 };
 
+function parseUtcDate(value) {
+  if (!value) return null;
+  const normalized = value.includes("T") ? value : value.replace(" ", "T");
+  const date = new Date(normalized.endsWith("Z") ? normalized : `${normalized}Z`);
+  return Number.isNaN(date.getTime()) ? null : date;
+}
+
+function formatLocalTime(value) {
+  const date = parseUtcDate(value);
+  if (!date) return value || "";
+  return new Intl.DateTimeFormat("zh-CN", {
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
+  }).format(date);
+}
+
 function updateClock() {
   const el = $("#clock");
   if (!el) return;
@@ -52,7 +72,9 @@ async function loadPublicDiaries() {
     if (heroList) {
       const pill = document.createElement("div");
       pill.className = "card-pill";
-      pill.innerHTML = `<div class="badge">${item.author}</div><div>${item.title}</div><small class="muted">${item.created_at}</small>`;
+      pill.innerHTML = `<div class="badge">${item.author}</div><div>${item.title}</div><small class="muted">${formatLocalTime(
+        item.created_at
+      )}</small>`;
       heroList.appendChild(pill);
     }
 
@@ -64,7 +86,7 @@ async function loadPublicDiaries() {
         <div class="dot"></div>
         <div class="line"></div>
         <div class="timeline__card">
-          <div class="timeline__meta">${item.created_at} · ${item.author}</div>
+          <div class="timeline__meta">${formatLocalTime(item.created_at)} · ${item.author}</div>
           <div class="timeline__title">${item.title}</div>
           <p class="muted">${item.excerpt || "..."}</p>
         </div>
@@ -81,7 +103,9 @@ async function loadPublicMessages() {
   const wrap = document.getElementById("publicMessageList");
   wrap.innerHTML = list
     .map(
-      (m) => `<div class="message-item"><div>${m.content}</div><div class="message-meta">${m.nickname} · ${m.created_at}</div></div>`
+      (m) => `<div class="message-item"><div>${m.content}</div><div class="message-meta">${m.nickname} · ${formatLocalTime(
+        m.created_at
+      )}</div></div>`
     )
     .join("");
 }
@@ -98,7 +122,7 @@ async function loadPublicUserMessages() {
       (m) => `
         <div class="message-item">
           <div>${m.content}</div>
-          <div class="message-meta">${m.username} · ${m.created_at}</div>
+          <div class="message-meta">${m.username} · ${formatLocalTime(m.created_at)}</div>
         </div>`
     )
     .join("");
@@ -278,7 +302,7 @@ async function loadSecretArea() {
       div.className = "diary-item";
       div.innerHTML = `
         <div class="title">${item.title}</div>
-        <div class="muted">${item.created_at} · ${item.author}</div>
+        <div class="muted">${formatLocalTime(item.created_at)} · ${item.author}</div>
         <p>${item.content}</p>
         <div class="tools">
           ${
@@ -299,7 +323,7 @@ async function loadSecretArea() {
       row.className = "admin-row";
       row.innerHTML = `
         <div>${item.title}</div>
-        <div class="muted">${item.author} · ${item.created_at}</div>
+        <div class="muted">${item.author} · ${formatLocalTime(item.created_at)}</div>
         <button class="btn soft" data-admin-toggle="${item.id}" data-public="${item.is_public ? 1 : 0}">${
           item.is_public ? "公开中" : "未公开"
         }</button>
@@ -328,7 +352,7 @@ async function loadAdminDiaries() {
     row.className = "admin-row";
     row.innerHTML = `
       <div>${item.title}</div>
-      <div class="muted">${item.author} · ${item.created_at}</div>
+      <div class="muted">${item.author} · ${formatLocalTime(item.created_at)}</div>
       <button class="btn soft" data-admin-toggle="${item.id}" data-public="${item.is_public ? 1 : 0}">${
         item.is_public ? "公开中" : "未公开"
       }</button>
@@ -353,7 +377,7 @@ async function loadAdminMessages() {
         (m) => `
           <div class="admin-row">
             <div>${m.content}</div>
-            <div class="muted">${m.nickname} · ${m.created_at}</div>
+            <div class="muted">${m.nickname} · ${formatLocalTime(m.created_at)}</div>
             <div class="action-group" data-id="${m.id}" data-hidden="${m.is_hidden ? 1 : 0}">
               <button class="btn soft" data-message-action="toggle">${m.is_hidden ? "已隐藏" : "显示中"}</button>
               <button class="btn ghost" data-message-action="delete">删除</button>
@@ -370,7 +394,7 @@ async function loadAdminMessages() {
         (m) => `
           <div class="admin-row">
             <div>${m.content}</div>
-            <div class="muted">${m.from_name} → ${m.to_name} · ${m.created_at}</div>
+            <div class="muted">${m.from_name} → ${m.to_name} · ${formatLocalTime(m.created_at)}</div>
             <button class="btn ghost" data-private-id="${m.id}">删除</button>
           </div>`
       )
@@ -391,8 +415,10 @@ async function loadAdminUsers() {
       (u) => `
         <div class="admin-row">
           <div>${u.username} <span class="badge">${u.role}</span></div>
-          <div class="muted">注册: ${u.created_at} @ ${u.registration_ip || "-"}</div>
-          <div class="muted">最近登录: ${u.last_login_at || "-"} ${u.last_login_ip ? "@" + u.last_login_ip : ""}</div>
+          <div class="muted">注册: ${formatLocalTime(u.created_at)} @ ${u.registration_ip || "-"}</div>
+          <div class="muted">最近登录: ${formatLocalTime(u.last_login_at) || "-"} ${
+            u.last_login_ip ? "@" + u.last_login_ip : ""
+          }</div>
         </div>`
     )
     .join("");
@@ -575,7 +601,9 @@ async function loadPrivateMessages() {
   if (wrap) {
     wrap.innerHTML = list
       .map(
-        (m, idx) => `<div class="bubble ${idx % 2 === 0 ? "me" : "you"}"><small>${m.from_name} → ${m.to_name} · ${m.created_at}</small>${m.content}</div>`
+        (m, idx) => `<div class="bubble ${idx % 2 === 0 ? "me" : "you"}"><small>${m.from_name} → ${m.to_name} · ${formatLocalTime(
+          m.created_at
+        )}</small>${m.content}</div>`
       )
       .join("");
   }
@@ -584,7 +612,9 @@ async function loadPrivateMessages() {
     inbox.innerHTML = received.length
       ? received
           .map(
-            (m) => `<div class="message-item"><div>${m.content}</div><div class="message-meta">${m.from_name} · ${m.created_at}</div></div>`
+            (m) => `<div class="message-item"><div>${m.content}</div><div class="message-meta">${m.from_name} · ${formatLocalTime(
+              m.created_at
+            )}</div></div>`
           )
           .join("")
       : '<div class="muted">还没有收到新的纸条。</div>';
@@ -617,7 +647,7 @@ async function loadPrivateMessages() {
     const me = await meRes.json();
     const stat = await statRes.json();
     state.me = me;
-    const created = me.created_at ? new Date(me.created_at) : null;
+    const created = parseUtcDate(me.created_at);
     const days = created ? Math.max(1, Math.floor((Date.now() - created.getTime()) / 86400000) + 1) : 1;
     panel.innerHTML = `
       <div class="subhead">${me.username}</div>
