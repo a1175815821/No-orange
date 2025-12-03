@@ -247,6 +247,8 @@ class GardenHandler(SimpleHTTPRequestHandler):
                 return self.api_admin_login()
             if path == "/api/admin/summary" and method == "GET":
                 return self.api_admin_summary()
+            if path == "/api/admin/diaries" and method == "GET":
+                return self.api_admin_diaries()
             if path.startswith("/api/admin/diaries/") and method == "PUT":
                 return self.api_admin_toggle_public(path)
             if path.startswith("/api/admin/messages/public/") and method == "DELETE":
@@ -475,6 +477,28 @@ class GardenHandler(SimpleHTTPRequestHandler):
                 "messages_private": private_msgs,
             }
         )
+
+    def api_admin_diaries(self):
+        if not require_token(self.headers, role="admin"):
+            return self.send_json({"error": "未授权"}, 401)
+        conn = sqlite3.connect(DB_PATH)
+        cur = conn.cursor()
+        cur.execute(
+            "SELECT id, author_name, title, content, is_public, created_at FROM diaries ORDER BY created_at DESC"
+        )
+        items = [
+            {
+                "id": row[0],
+                "author": row[1],
+                "title": row[2],
+                "content": row[3],
+                "is_public": bool(row[4]),
+                "created_at": row[5],
+            }
+            for row in cur.fetchall()
+        ]
+        conn.close()
+        self.send_json({"items": items})
 
     def api_admin_toggle_public(self, path):
         if not require_token(self.headers, role="admin"):

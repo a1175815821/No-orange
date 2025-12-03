@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Secret Garden · 管理后台</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700&family=Noto+Serif+SC:wght@400;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/styles.css">
+</head>
+<body class="page-admin">
+  <!-- 管理员 C 界面：独立控制台，入口通过角落按钮完成 -->
+  <div class="backdrop">
+    <div class="glow glow-1"></div>
+    <div class="glow glow-2"></div>
+    <div class="stars"></div>
+    <div class="fireflies" aria-hidden="true"></div>
+  </div>
+
+  <header class="hero hero-compact">
+    <div class="hero__content">
+      <p class="eyebrow">C · 管理面板</p>
+      <h1>Secret Garden Console</h1>
+      <p class="lede">更偏控制台的淡色界面，用于维护日记与留言。默认账号：admin / garden-admin。</p>
+      <div class="hero__actions">
+        <a class="btn ghost" href="/">← 返回游客</a>
+        <a class="btn ghost" href="/secret.html">返回 B 空间</a>
+      </div>
+    </div>
+  </header>
+
+  <main>
+    <section class="section admin" id="admin-area">
+      <div class="section__header">
+        <div>
+          <p class="eyebrow">登录 & 总览</p>
+          <h2>管理 Secret Garden</h2>
+          <p class="muted">登录后查看统计、切换公开状态、删除日记或留言。</p>
+        </div>
+      </div>
+      <div class="grid two-col">
+        <div class="glass-card pad">
+          <div class="subhead">管理员登录</div>
+          <form id="adminLoginForm" class="stack">
+            <input name="username" placeholder="用户名" required />
+            <input name="password" type="password" placeholder="密码" required />
+            <button class="btn" type="submit">登录后台</button>
+            <p class="form-hint" id="adminHint"></p>
+          </form>
+          <div class="stat-board" id="statBoard"></div>
+        </div>
+        <div class="glass-card pad">
+          <div class="subhead">公开状态切换</div>
+          <div id="adminDiaryList" class="admin-list"></div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <div class="corner-nav">
+    <a class="corner-btn ghost" href="/">篱笆边缘</a>
+    <a class="corner-btn" href="/secret.html" title="去 B 模式">🌙</a>
+  </div>
+
+  <script src="/app.js" data-page="admin"></script>
+</body>
+</html>

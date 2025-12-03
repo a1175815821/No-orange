@@ -1,9 +1,15 @@
+// ---- 基础工具：简化选择与 API 调用 ----
 const $ = (selector) => document.querySelector(selector);
-const api = (path, options = {}) => fetch(path, {
-  headers: { "Content-Type": "application/json", ...(options.headers || {}) },
-  ...options,
-});
+const api = (path, options = {}) =>
+  fetch(path, {
+    headers: { "Content-Type": "application/json", ...(options.headers || {}) },
+    ...options,
+  });
 
+// 读取当前页面标识（public / secret / admin），便于拆分初始化逻辑
+const PAGE = document.currentScript?.dataset.page || "public";
+
+// 持久化 token，便于在各自页面中自动恢复登录态
 const state = {
   secretToken: localStorage.getItem("secretToken") || "",
   adminToken: localStorage.getItem("adminToken") || "",
@@ -27,23 +33,32 @@ async function loadPublicDiaries() {
   const data = await res.json();
   const list = data.items || [];
   const heroList = document.getElementById("publicDiaryList");
-  const grid = document.getElementById("diaryGrid");
-  heroList.innerHTML = "";
-  grid.innerHTML = "";
+  const timeline = document.getElementById("timeline");
+  if (heroList) heroList.innerHTML = "";
+  if (timeline) timeline.innerHTML = "";
   list.forEach((item) => {
-    const pill = document.createElement("div");
-    pill.className = "card-pill";
-    pill.innerHTML = `<div class="badge">${item.author}</div><div>${item.title}</div><small class="muted">${item.created_at}</small>`;
-    heroList.appendChild(pill);
+    if (heroList) {
+      const pill = document.createElement("div");
+      pill.className = "card-pill";
+      pill.innerHTML = `<div class="badge">${item.author}</div><div>${item.title}</div><small class="muted">${item.created_at}</small>`;
+      heroList.appendChild(pill);
+    }
 
-    const card = document.createElement("div");
-    card.className = "diary-card card-sparkle";
-    card.innerHTML = `
-      <div class="badge">${item.title}</div>
-      <p>${item.excerpt || "..."}</p>
-      <small class="muted">${item.created_at} · ${item.author}</small>
-    `;
-    grid.appendChild(card);
+    // 时间线样式：一条条按创建时间垂直排列
+    if (timeline) {
+      const row = document.createElement("div");
+      row.className = "timeline__item";
+      row.innerHTML = `
+        <div class="dot"></div>
+        <div class="line"></div>
+        <div class="timeline__card">
+          <div class="timeline__meta">${item.created_at} · ${item.author}</div>
+          <div class="timeline__title">${item.title}</div>
+          <p class="muted">${item.excerpt || "..."}</p>
+        </div>
+      `;
+      timeline.appendChild(row);
+    }
   });
 }
 
@@ -61,6 +76,7 @@ async function loadPublicMessages() {
 
 function setupPublicMessageForm() {
   const form = document.getElementById("publicMessageForm");
+  if (!form) return; // 仅 A 页面需要
   form.addEventListener("submit", async (e) => {
     e.preventDefault();
     const formData = new FormData(form);
@@ -82,8 +98,10 @@ function setupPublicMessageForm() {
 }
 
 function setupSecretModal() {
+  const trigger = $("#openSecret");
   const modal = document.getElementById("secretModal");
-  $("#openSecret").addEventListener("click", () => modal.classList.add("active"));
+  if (!trigger || !modal) return;
+  trigger.addEventListener("click", () => modal.classList.add("active"));
   $("#closeModal").addEventListener("click", () => modal.classList.remove("active"));
   modal.addEventListener("click", (e) => {
     if (e.target === modal) modal.classList.remove("active");
@@ -101,6 +119,7 @@ function requireAdmin() {
 function bindSecretLogin() {
   const form = document.getElementById("secretLoginForm");
   const hint = document.getElementById("secretHint");
+  if (!form || !hint) return;
   form.addEventListener("submit", async (e) => {
     e.preventDefault();
     const { password } = Object.fromEntries(new FormData(form).entries());
@@ -131,24 +150,56 @@ async function loadSecretArea() {
   const list = data.items || [];
   const wrap = document.getElementById("secretDiaryList");
   const adminWrap = document.getElementById("adminDiaryList");
-  wrap.innerHTML = "";
+  if (wrap) wrap.innerHTML = "";
+  if (adminWrap) adminWrap.innerHTML = "";
+  list.forEach((item) => {
+    if (wrap) {
+      const div = document.createElement("div");
+      div.className = "diary-item";
+      div.innerHTML = `
+        <div class="title">${item.title}</div>
+        <div class="muted">${item.created_at} · ${item.author}</div>
+        <p>${item.content}</p>
+        <div class="tools">
+          <span class="tool" data-action="toggle" data-id="${item.id}" data-public="${item.is_public ? 1 : 0}">${
+            item.is_public ? "取消公开" : "标记公开"
+          }</span>
+          <span class="tool danger" data-action="delete" data-id="${item.id}">删除</span>
+        </div>
+      `;
+      wrap.appendChild(div);
+    }
+
+    if (adminWrap) {
+      const row = document.createElement("div");
+      row.className = "admin-row";
+      row.innerHTML = `
+        <div>${item.title}</div>
+        <div class="muted">${item.author} · ${item.created_at}</div>
+        <button class="btn soft" data-admin-toggle="${item.id}" data-public="${item.is_public ? 1 : 0}">${
+          item.is_public ? "公开中" : "未公开"
+        }</button>
+      `;
+      adminWrap.appendChild(row);
+    }
+  });
+  bindDiaryActions();
+  bindAdminToggle();
+  loadPrivateMessages();
+}
+
+async function loadAdminDiaries() {
+  if (!requireAdmin()) return;
+  const res = await api("/api/admin/diaries", {
+    headers: { Authorization: `Bearer ${state.adminToken}` },
+  });
+  if (!res.ok) return;
+  const data = await res.json();
+  const list = data.items || [];
+  const adminWrap = document.getElementById("adminDiaryList");
+  if (!adminWrap) return;
   adminWrap.innerHTML = "";
   list.forEach((item) => {
-    const div = document.createElement("div");
-    div.className = "diary-item";
-    div.innerHTML = `
-      <div class="title">${item.title}</div>
-      <div class="muted">${item.created_at} · ${item.author}</div>
-      <p>${item.content}</p>
-      <div class="tools">
-        <span class="tool" data-action="toggle" data-id="${item.id}" data-public="${item.is_public ? 1 : 0}">${
-          item.is_public ? "取消公开" : "标记公开"
-        }</span>
-        <span class="tool danger" data-action="delete" data-id="${item.id}">删除</span>
-      </div>
-    `;
-    wrap.appendChild(div);
-
     const row = document.createElement("div");
     row.className = "admin-row";
     row.innerHTML = `
@@ -160,13 +211,13 @@ async function loadSecretArea() {
     `;
     adminWrap.appendChild(row);
   });
-  bindDiaryActions();
   bindAdminToggle();
-  loadPrivateMessages();
 }
 
 function bindDiaryActions() {
-  document.getElementById("secretDiaryList").addEventListener("click", async (e) => {
+  const list = document.getElementById("secretDiaryList");
+  if (!list) return;
+  list.addEventListener("click", async (e) => {
     const action = e.target.dataset.action;
     if (!action) return;
     const id = e.target.dataset.id;
@@ -188,7 +239,9 @@ function bindDiaryActions() {
 }
 
 function bindAdminToggle() {
-  document.getElementById("adminDiaryList").addEventListener("click", async (e) => {
+  const board = document.getElementById("adminDiaryList");
+  if (!board) return;
+  board.addEventListener("click", async (e) => {
     const id = e.target.dataset.adminToggle;
     if (!id || !requireAdmin()) return;
     const isPublic = e.target.dataset.public === "1" ? 0 : 1;
@@ -205,6 +258,7 @@ function bindAdminToggle() {
 function bindDiaryForm() {
   const form = document.getElementById("diaryForm");
   const hint = document.getElementById("diaryHint");
+  if (!form || !hint) return;
   form.addEventListener("submit", async (e) => {
     e.preventDefault();
     if (!requireSecret()) {
@@ -230,6 +284,7 @@ function bindDiaryForm() {
 function bindPrivateMessageForm() {
   const form = document.getElementById("privateMessageForm");
   const hint = document.getElementById("privateHint");
+  if (!form || !hint) return;
   form.addEventListener("submit", async (e) => {
     e.preventDefault();
     if (!requireSecret()) {
@@ -260,16 +315,19 @@ async function loadPrivateMessages() {
   const data = await res.json();
   const list = data.items || [];
   const wrap = document.getElementById("privateMessages");
-  wrap.innerHTML = list
-    .map(
-      (m, idx) => `<div class="bubble ${idx % 2 === 0 ? "me" : "you"}"><small>${m.from_name} → ${m.to_name} · ${m.created_at}</small>${m.content}</div>`
-    )
-    .join("");
+  if (wrap) {
+    wrap.innerHTML = list
+      .map(
+        (m, idx) => `<div class="bubble ${idx % 2 === 0 ? "me" : "you"}"><small>${m.from_name} → ${m.to_name} · ${m.created_at}</small>${m.content}</div>`
+      )
+      .join("");
+  }
 }
 
 function bindAdminLogin() {
   const form = document.getElementById("adminLoginForm");
   const hint = document.getElementById("adminHint");
+  if (!form || !hint) return;
   form.addEventListener("submit", async (e) => {
     e.preventDefault();
     const data = Object.fromEntries(new FormData(form).entries());
@@ -286,6 +344,7 @@ function bindAdminLogin() {
     localStorage.setItem("adminToken", json.token);
     hint.textContent = "进入后台";
     loadStats();
+    loadAdminDiaries();
   });
 }
 
@@ -306,21 +365,42 @@ async function loadStats() {
 }
 
 function handleSecretPersistence() {
-  if (state.secretToken) loadSecretArea();
-  if (state.adminToken) loadStats();
+  // 只在对应页面恢复，避免不必要的 API 调用
+  if (PAGE === "secret" && state.secretToken) loadSecretArea();
+  if (PAGE === "admin" && state.adminToken) {
+    loadStats();
+    loadAdminDiaries();
+  }
 }
 
 function init() {
-  loadPublicDiaries();
-  loadPublicMessages();
-  setupPublicMessageForm();
-  setupSecretModal();
-  bindSecretLogin();
-  bindDiaryForm();
-  bindPrivateMessageForm();
-  bindAdminLogin();
+  // A 页面：公开时间线与留言板
+  if (PAGE === "public") {
+    loadPublicDiaries();
+    loadPublicMessages();
+    setupPublicMessageForm();
+    const refresh = document.getElementById("refreshDiaries");
+    if (refresh) refresh.addEventListener("click", loadPublicDiaries);
+  }
+
+  // B 页面：需要密码的私密写作与纸条
+  if (PAGE === "secret") {
+    setupSecretModal();
+    bindSecretLogin();
+    bindDiaryForm();
+    bindPrivateMessageForm();
+  }
+
+  // C 页面：后台管理
+  if (PAGE === "admin") {
+    bindAdminLogin();
+    if (state.adminToken) {
+      loadAdminDiaries();
+    }
+  }
+
+  // 共享：恢复持久化状态、更新时钟
   handleSecretPersistence();
-  document.getElementById("refreshDiaries").addEventListener("click", loadPublicDiaries);
 }
 
 init();

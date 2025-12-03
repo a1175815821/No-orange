@@ -199,6 +199,88 @@ a {
 .bubble.you { margin-right: auto; background: rgba(154,215,255,0.1); border: 1px solid rgba(154,215,255,0.3); }
 .bubble small { display: block; color: var(--muted); margin-bottom: 4px; }
 
+/* 时间线样式：垂直延展，突出一条条故事 */
+.timeline { position: relative; display: grid; gap: 16px; margin-top: 12px; }
+.timeline::before {
+  content: "";
+  position: absolute;
+  left: 14px;
+  top: 0;
+  bottom: 0;
+  width: 2px;
+  background: linear-gradient(var(--pink), rgba(255,255,255,0));
+  opacity: 0.5;
+}
+.timeline__item { position: relative; padding-left: 42px; display: grid; gap: 6px; }
+.timeline__item .dot {
+  position: absolute;
+  left: 6px;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: var(--pink);
+  box-shadow: 0 0 16px rgba(255,181,216,0.6);
+}
+.timeline__item .line {
+  position: absolute;
+  left: 13px;
+  top: 16px;
+  width: 2px;
+  height: calc(100% - 16px);
+  background: rgba(255,255,255,0.1);
+}
+.timeline__card {
+  padding: 14px;
+  border-radius: 14px;
+  border: 1px solid var(--border);
+  background: rgba(255,255,255,0.05);
+  box-shadow: 0 12px 30px rgba(0,0,0,0.25);
+}
+.timeline__meta { font-size: 13px; color: var(--muted); }
+.timeline__title { font-weight: 700; margin: 4px 0; }
+
+/* 隐藏入口按钮：角落的月亮 / 花朵 */
+.corner-nav {
+  position: fixed;
+  bottom: 18px;
+  right: 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  z-index: 10;
+}
+.corner-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 42px;
+  padding: 10px 14px;
+  border-radius: 999px;
+  text-decoration: none;
+  background: rgba(255,255,255,0.08);
+  border: 1px solid var(--border);
+  color: var(--text);
+  box-shadow: 0 10px 24px rgba(0,0,0,0.4);
+  opacity: 0.82;
+  transition: transform 0.2s ease, opacity 0.2s ease;
+}
+.corner-btn:hover { transform: translateY(-3px); opacity: 1; }
+.corner-btn.ghost { background: rgba(255,255,255,0.04); }
+
+/* 页面特化：管理员与私密页略紧凑 */
+.page-admin .hero,
+.page-secret .hero {
+  padding-top: 60px;
+}
+.hero-compact { padding-bottom: 20px; }
+
+@media (max-width: 720px) {
+  .corner-nav { right: 12px; bottom: 12px; flex-direction: row; }
+  .timeline__item { padding-left: 36px; }
+  .timeline__item .dot { left: 4px; }
+  .timeline__item .line { left: 11px; }
+}
+
 .admin { background: linear-gradient(180deg, transparent, rgba(255,255,255,0.03)); }
 .admin-list { display: grid; gap: 10px; max-height: 320px; overflow-y: auto; }
 .admin-row { padding: 12px; border-radius: 12px; border: 1px solid var(--border); background: rgba(255,255,255,0.04); display: grid; gap: 6px; }
