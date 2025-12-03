@@ -13,6 +13,7 @@ const PAGE = document.currentScript?.dataset.page || "public";
 const state = {
   userToken: localStorage.getItem("userToken") || "",
   adminToken: localStorage.getItem("adminToken") || "",
+  me: null,
 };
 
 function updateClock() {
@@ -29,13 +30,24 @@ setInterval(updateClock, 1000);
 updateClock();
 
 async function loadPublicDiaries() {
-  const res = await api("/api/public/diaries");
-  const data = await res.json();
-  const list = data.items || [];
+  let list = [];
+  try {
+    const res = await api("/api/public/diaries");
+    if (!res.ok) throw new Error("load fail");
+    const data = await res.json();
+    list = data.items || [];
+  } catch (err) {
+    console.warn("无法加载公开日记", err);
+  }
   const heroList = document.getElementById("publicDiaryList");
   const timeline = document.getElementById("timeline");
   if (heroList) heroList.innerHTML = "";
   if (timeline) timeline.innerHTML = "";
+  if (!list.length) {
+    if (heroList) heroList.innerHTML = '<div class="muted">暂无公开日记，稍后再试</div>';
+    if (timeline) timeline.innerHTML = '<div class="muted">还没有公开的花瓣，去 B 区域标记公开吧。</div>';
+    return;
+  }
   list.forEach((item) => {
     if (heroList) {
       const pill = document.createElement("div");
@@ -142,6 +154,7 @@ function requireUser() {
 
 function logoutUser() {
   state.userToken = "";
+  state.me = null;
   localStorage.removeItem("userToken");
   document.getElementById("secretModal")?.classList.remove("active");
   updateAuthButton();
@@ -150,12 +163,23 @@ function logoutUser() {
   if (diaryList) diaryList.innerHTML = "";
   const privateList = document.getElementById("privateMessages");
   if (privateList) privateList.innerHTML = "";
+  const inbox = document.getElementById("inboxMessages");
+  if (inbox) inbox.innerHTML = "";
 }
 
 function updateAuthButton() {
   const trigger = document.getElementById("openSecret");
   if (!trigger) return;
   trigger.textContent = requireUser() ? "退出登录" : "登录 / 注册";
+}
+
+async function hydrateProfile() {
+  if (!requireUser()) return null;
+  const res = await api("/api/auth/me", { headers: { Authorization: `Bearer ${state.userToken}` } });
+  if (!res.ok) return null;
+  const me = await res.json();
+  state.me = me;
+  return me;
 }
 
 function bindAuthForms() {
@@ -192,6 +216,7 @@ function bindAuthForms() {
         return;
       }
       state.userToken = data.token;
+      state.me = { username: data.username };
       localStorage.setItem("userToken", data.token);
       hint.textContent = `欢迎回来，${data.username}`;
       document.getElementById("secretModal")?.classList.remove("active");
@@ -219,6 +244,7 @@ function bindAuthForms() {
         return;
       }
       state.userToken = data.token;
+      state.me = { username: data.username };
       localStorage.setItem("userToken", data.token);
       regHint.textContent = `注册成功，欢迎 ${data.username}`;
       document.getElementById("secretModal")?.classList.remove("active");
@@ -531,6 +557,10 @@ function bindUserMessageForm() {
 
 async function loadPrivateMessages() {
   if (!requireUser()) return;
+  if (!state.me) {
+    await hydrateProfile();
+  }
+  const username = state.me?.username;
   const res = await api("/api/secret/messages", {
     headers: { Authorization: `Bearer ${state.userToken}` },
   });
@@ -538,6 +568,7 @@ async function loadPrivateMessages() {
   const data = await res.json();
   const list = data.items || [];
   const wrap = document.getElementById("privateMessages");
+  const inbox = document.getElementById("inboxMessages");
   if (wrap) {
     wrap.innerHTML = list
       .map(
@@ -545,6 +576,46 @@ async function loadPrivateMessages() {
       )
       .join("");
   }
+  if (inbox) {
+    const received = username ? list.filter((m) => m.to_name === username) : [];
+    inbox.innerHTML = received.length
+      ? received
+          .map(
+            (m) => `<div class="message-item"><div>${m.content}</div><div class="message-meta">${m.from_name} · ${m.created_at}</div></div>`
+          )
+          .join("")
+      : '<div class="muted">还没有收到新的纸条。</div>';
+  }
+}
+
+async function loadUserSummary() {
+  const panel = document.getElementById("userSummary");
+  if (!panel) return;
+  if (!requireUser()) {
+    panel.textContent = "登录后展示你的用户名与加入天数。";
+    updateAuthButton();
+    return;
+  }
+  const [meRes, statRes] = await Promise.all([
+    api("/api/auth/me", { headers: { Authorization: `Bearer ${state.userToken}` } }),
+    api("/api/auth/summary", { headers: { Authorization: `Bearer ${state.userToken}` } }),
+  ]);
+  if (!meRes.ok || !statRes.ok) {
+    panel.textContent = "登录后展示你的用户名与加入天数。";
+    return;
+  }
+  const me = await meRes.json();
+  const stat = await statRes.json();
+  state.me = me;
+  const created = me.created_at ? new Date(me.created_at) : null;
+  const days = created ? Math.max(1, Math.floor((Date.now() - created.getTime()) / 86400000) + 1) : 1;
+  panel.innerHTML = `
+    <div class="subhead">${me.username}</div>
+    <div class="muted">已在花园的第 ${days} 天</div>
+    <div class="muted">注册朋友：${stat.user_count || 0} · 写过日记：${stat.poster_count || 0}</div>
+    <div class="muted">正式留言：${stat.user_messages || 0}</div>
+  `;
+  updateAuthButton();
 }
 
 async function loadUserSummary() {

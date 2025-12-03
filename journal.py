@@ -552,7 +552,7 @@ class GardenHandler(SimpleHTTPRequestHandler):
         diary_id = path.rsplit("/", 1)[-1]
         conn = sqlite3.connect(DB_PATH)
         cur = conn.cursor()
-        cur.execute("SELECT author_name FROM diaries WHERE id=?", (diary_id,))
+        cur.execute("SELECT author_name, title, content FROM diaries WHERE id=?", (diary_id,))
         owner = cur.fetchone()
         if not owner:
             conn.close()
@@ -561,11 +561,15 @@ class GardenHandler(SimpleHTTPRequestHandler):
             conn.close()
             return self.send_json({"error": "无权编辑他人日记"}, 403)
         data = self.json_body()
+        current_title = owner[1] or "无题"
+        current_content = owner[2] or ""
+        new_title = (data.get("title") or current_title).strip()[:80]
+        new_content = (data.get("content") or current_content).strip()
         cur.execute(
             "UPDATE diaries SET title=?, content=?, is_public=?, updated_at=CURRENT_TIMESTAMP WHERE id=?",
             (
-                (data.get("title") or "无题")[:80],
-                (data.get("content") or "").strip(),
+                new_title or "无题",
+                new_content,
                 1 if data.get("is_public") else 0,
                 diary_id,
             ),
