@@ -176,7 +176,10 @@ function updateAuthButton() {
 async function hydrateProfile() {
   if (!requireUser()) return null;
   const res = await api("/api/auth/me", { headers: { Authorization: `Bearer ${state.userToken}` } });
-  if (!res.ok) return null;
+  if (!res.ok) {
+    logoutUser();
+    return null;
+  }
   const me = await res.json();
   state.me = me;
   return me;

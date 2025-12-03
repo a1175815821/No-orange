@@ -10,7 +10,6 @@ from pathlib import Path
 
 DB_PATH = Path(__file__).parent / "garden.db"
 PUBLIC_DIR = Path(__file__).parent / "public"
-SESSIONS = {}
 PUBLIC_MESSAGE_COOLDOWN = 12  # seconds between public messages per IP
 LAST_PUBLIC_MESSAGE = {}
 LOGIN_ATTEMPTS = {}
@@ -60,6 +59,16 @@ def init_db():
         cur.execute("ALTER TABLE users ADD COLUMN last_login_ip TEXT")
     if "last_login_at" not in columns:
         cur.execute("ALTER TABLE users ADD COLUMN last_login_at DATETIME")
+    cur.execute(
+        """
+        CREATE TABLE IF NOT EXISTS sessions (
+            token TEXT PRIMARY KEY,
+            role TEXT,
+            username TEXT,
+            created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+        )
+        """
+    )
     cur.execute(
         """
         CREATE TABLE IF NOT EXISTS diaries (
@@ -164,11 +173,14 @@ def init_db():
 
 def make_token(role: str, username: str = "") -> str:
     token = secrets.token_urlsafe(24)
-    SESSIONS[token] = {
-        "role": role,
-        "username": username,
-        "created": time.time(),
-    }
+    conn = sqlite3.connect(DB_PATH)
+    cur = conn.cursor()
+    cur.execute(
+        "INSERT OR REPLACE INTO sessions (token, role, username) VALUES (?, ?, ?)",
+        (token, role, username),
+    )
+    conn.commit()
+    conn.close()
     return token
 
 
@@ -177,10 +189,15 @@ def require_token(headers, role=None):
     if not auth.startswith("Bearer "):
         return None
     token = auth.split(" ", 1)[1]
-    data = SESSIONS.get(token)
-    if not data:
+    conn = sqlite3.connect(DB_PATH)
+    cur = conn.cursor()
+    cur.execute("SELECT role, username FROM sessions WHERE token=?", (token,))
+    row = cur.fetchone()
+    conn.close()
+    if not row:
         return None
-    if role and data.get("role") != role:
+    data = {"role": row[0], "username": row[1] or ""}
+    if role and data["role"] != role:
         return None
     return {**data, "token": token}
 
@@ -452,14 +469,6 @@ class GardenHandler(SimpleHTTPRequestHandler):
             (session["username"],),
         )
         row = cur.fetchone()
-        if not row or not verify_password(password, row[1]):
-            conn.close()
-            return self.send_json({"error": "账号或密码错误"}, 401)
-        cur.execute(
-            "UPDATE users SET last_login_ip=?, last_login_at=CURRENT_TIMESTAMP WHERE id=?",
-            (ip, row[0]),
-        )
-        conn.commit()
         conn.close()
         if not row:
             return self.send_json({"error": "未找到用户"}, 404)
