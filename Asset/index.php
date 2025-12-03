@@ -5,9 +5,9 @@
 
 // 数据库连接信息
 $servername = "localhost";
-$username = "aaaa";
-$password = "123456";
-$dbname = "aaaa";
+$username = "avatars";
+$password = "a123456789";
+$dbname = "avatars";
 
 // 分页配置
 $results_per_page = 20;

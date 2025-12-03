@@ -17,6 +17,6 @@ Made with quiet emotion.
 [NoOrange by Ninka-Rex](https://github.com/Ninka-Rex/NoOrange)（源仓库已删除），  
 但 *并未使用其任何源代码*，实际实现方式与结构均为重新构建。
 
-该项目基于 **Apache License 2.0** 开源，希望能成为你偶尔想静下来时的一个落脚点。
+该项目基于 **MIT License** 开源，希望能成为你偶尔想静下来时的一个落脚点。
 
 ---
