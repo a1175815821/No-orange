@@ -20,8 +20,10 @@ from email.message import EmailMessage
 from typing import Dict
 
 from flask import Flask, jsonify, request
+from flask_cors import CORS
 
 app = Flask(__name__)
+CORS(app, resources={r"/api/*": {"origins": "*"}})
 
 
 class ConfigError(RuntimeError):
