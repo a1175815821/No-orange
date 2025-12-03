@@ -377,7 +377,7 @@
 
                             <div class="field-group">
                                 <label class="field-label" for="email">邮箱 / Email</label>
-                                <input class="input" id="email" name="email" type="email" placeholder="用来接收回复（只是示例，不会真的发）" />
+                                <input class="input" id="email" name="email" type="email" placeholder="用来接收回复或留作联系记录" />
                             </div>
 
                             <div class="field-group">
@@ -386,12 +386,14 @@
                             </div>
 
                             <button type="submit" class="btn">
-                                发送留言（示例）
+                                发送留言
                             </button>
 
                             <p class="contact-note">
-                                * 当前表单只是前端示例，不会真的发送到服务器，主要是方便以后接后端。
+                                * 留言会通过后端邮件服务转发到站长邮箱，提交后会在这里提示发送结果。
                             </p>
+
+                            <div class="contact-status" id="contact-status" aria-live="polite"></div>
                         </form>
                     </div>
 

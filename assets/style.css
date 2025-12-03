@@ -775,7 +775,7 @@ section {
 }
 
 .quote-card {
-    padding: 12px 14px;
+    padding: 16px 18px;
     border-radius: 14px;
     background: rgba(14, 9, 42, 0.95);
     border: 1px solid rgba(255, 255, 255, 0.22);
@@ -885,6 +885,20 @@ section {
     font-size: 0.8rem;
     color: var(--text-muted);
     margin-top: 4px;
+}
+
+.contact-status {
+    margin-top: 8px;
+    font-size: 0.85rem;
+    line-height: 1.6;
+}
+
+.contact-status.success {
+    color: #a6f3d6;
+}
+
+.contact-status.error {
+    color: #ffb4b4;
 }
 
 .contact-social-card {
