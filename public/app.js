@@ -618,6 +618,32 @@ async function loadUserSummary() {
   updateAuthButton();
 }
 
+async function loadUserSummary() {
+  const panel = document.getElementById("userSummary");
+  if (!panel) return;
+  if (!requireUser()) {
+    panel.textContent = "登录后展示你的用户名与加入天数。";
+    updateAuthButton();
+    return;
+  }
+  const [meRes, statRes] = await Promise.all([
+    api("/api/auth/me", { headers: { Authorization: `Bearer ${state.userToken}` } }),
+    api("/api/auth/summary", { headers: { Authorization: `Bearer ${state.userToken}` } }),
+  ]);
+  if (!meRes.ok || !statRes.ok) return;
+  const me = await meRes.json();
+  const stat = await statRes.json();
+  const created = me.created_at ? new Date(me.created_at) : null;
+  const days = created ? Math.max(1, Math.floor((Date.now() - created.getTime()) / 86400000) + 1) : 1;
+  panel.innerHTML = `
+    <div class="subhead">${me.username}</div>
+    <div class="muted">已在花园的第 ${days} 天</div>
+    <div class="muted">注册朋友：${stat.user_count || 0} · 写过日记：${stat.poster_count || 0}</div>
+    <div class="muted">正式留言：${stat.user_messages || 0}</div>
+  `;
+  updateAuthButton();
+}
+
 function bindAdminLogin() {
   const form = document.getElementById("adminLoginForm");
   const hint = document.getElementById("adminHint");
