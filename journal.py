@@ -97,6 +97,16 @@ def init_db():
     )
     cur.execute(
         """
+        CREATE TABLE IF NOT EXISTS messages_user (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            username TEXT,
+            content TEXT,
+            created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+        )
+        """
+    )
+    cur.execute(
+        """
         CREATE TABLE IF NOT EXISTS settings (
             key TEXT PRIMARY KEY,
             value TEXT
@@ -255,12 +265,16 @@ class GardenHandler(SimpleHTTPRequestHandler):
                 return self.api_public_messages()
             if path == "/api/public/messages" and method == "POST":
                 return self.api_post_public_message()
+            if path == "/api/public/user-messages" and method == "GET":
+                return self.api_public_user_messages()
             if path == "/api/auth/register" and method == "POST":
                 return self.api_auth_register()
             if path == "/api/auth/login" and method == "POST":
                 return self.api_auth_login()
             if path == "/api/auth/me" and method == "GET":
                 return self.api_auth_me()
+            if path == "/api/auth/summary" and method == "GET":
+                return self.api_auth_summary()
             if path == "/api/secret/diaries" and method == "GET":
                 return self.api_secret_diaries()
             if path == "/api/secret/diaries" and method == "POST":
@@ -273,6 +287,8 @@ class GardenHandler(SimpleHTTPRequestHandler):
                 return self.api_secret_messages()
             if path == "/api/secret/messages" and method == "POST":
                 return self.api_secret_post_message()
+            if path == "/api/secret/user-messages" and method == "POST":
+                return self.api_secret_post_user_message()
             if path == "/api/admin/login" and method == "POST":
                 return self.api_admin_login()
             if path == "/api/admin/summary" and method == "GET":
@@ -329,6 +345,24 @@ class GardenHandler(SimpleHTTPRequestHandler):
         ]
         conn.close()
         self.send_json({"items": messages})
+
+    def api_public_user_messages(self):
+        conn = sqlite3.connect(DB_PATH)
+        cur = conn.cursor()
+        cur.execute(
+            """
+            SELECT id, username, content, created_at
+            FROM messages_user
+            ORDER BY created_at DESC
+            LIMIT 80
+            """
+        )
+        items = [
+            {"id": row[0], "username": row[1], "content": row[2], "created_at": row[3]}
+            for row in cur.fetchall()
+        ]
+        conn.close()
+        self.send_json({"items": items})
 
     def api_post_public_message(self):
         ip = self.client_address[0]
@@ -415,6 +449,14 @@ class GardenHandler(SimpleHTTPRequestHandler):
             (session["username"],),
         )
         row = cur.fetchone()
+        if not row or not verify_password(password, row[1]):
+            conn.close()
+            return self.send_json({"error": "账号或密码错误"}, 401)
+        cur.execute(
+            "UPDATE users SET last_login_ip=?, last_login_at=CURRENT_TIMESTAMP WHERE id=?",
+            (ip, row[0]),
+        )
+        conn.commit()
         conn.close()
         if not row:
             return self.send_json({"error": "未找到用户"}, 404)
@@ -428,6 +470,26 @@ class GardenHandler(SimpleHTTPRequestHandler):
             }
         )
 
+    def api_auth_summary(self):
+        if not require_token(self.headers, role="user"):
+            return self.send_json({"error": "未登录"}, 401)
+        conn = sqlite3.connect(DB_PATH)
+        cur = conn.cursor()
+        cur.execute("SELECT COUNT(*) FROM users WHERE role!='admin'")
+        user_count = cur.fetchone()[0]
+        cur.execute("SELECT COUNT(DISTINCT author_name) FROM diaries")
+        poster_count = cur.fetchone()[0]
+        cur.execute("SELECT COUNT(*) FROM messages_user")
+        user_messages = cur.fetchone()[0]
+        conn.close()
+        self.send_json(
+            {
+                "user_count": user_count,
+                "poster_count": poster_count,
+                "user_messages": user_messages,
+            }
+        )
+
     # --- Secret zone
     def api_secret_diaries(self):
         session = require_token(self.headers, role="user")
@@ -436,7 +498,13 @@ class GardenHandler(SimpleHTTPRequestHandler):
         conn = sqlite3.connect(DB_PATH)
         cur = conn.cursor()
         cur.execute(
-            "SELECT id, author_name, title, content, is_public, created_at FROM diaries ORDER BY created_at DESC"
+            """
+            SELECT id, author_name, title, content, is_public, created_at
+            FROM diaries
+            WHERE is_public=1 OR author_name=?
+            ORDER BY created_at DESC
+            """,
+            (session["username"],),
         )
         items = [
             {
@@ -524,12 +592,20 @@ class GardenHandler(SimpleHTTPRequestHandler):
         self.send_json({"message": "删除完成"})
 
     def api_secret_messages(self):
-        if not require_token(self.headers, role="user"):
+        session = require_token(self.headers, role="user")
+        if not session:
             return self.send_json({"error": "未登录"}, 401)
         conn = sqlite3.connect(DB_PATH)
         cur = conn.cursor()
         cur.execute(
-            "SELECT id, from_name, to_name, content, created_at FROM messages_private ORDER BY created_at DESC LIMIT 80"
+            """
+            SELECT id, from_name, to_name, content, created_at
+            FROM messages_private
+            WHERE from_name=? OR to_name=?
+            ORDER BY created_at DESC
+            LIMIT 80
+            """,
+            (session["username"], session["username"]),
         )
         items = [
             {
@@ -556,6 +632,10 @@ class GardenHandler(SimpleHTTPRequestHandler):
             return self.send_json({"error": "小纸条不能为空，且不超过300字"}, 400)
         conn = sqlite3.connect(DB_PATH)
         cur = conn.cursor()
+        cur.execute("SELECT 1 FROM users WHERE username=?", (to_name,))
+        if not cur.fetchone():
+            conn.close()
+            return self.send_json({"error": "只允许给已注册用户发送站内信"}, 400)
         cur.execute(
             "INSERT INTO messages_private (from_name, to_name, content) VALUES (?, ?, ?)",
             (from_name, to_name, content),
@@ -563,6 +643,25 @@ class GardenHandler(SimpleHTTPRequestHandler):
         conn.commit()
         conn.close()
         self.send_json({"message": "纸条送达"}, 201)
+
+    def api_secret_post_user_message(self):
+        session = require_token(self.headers, role="user")
+        if not session:
+            return self.send_json({"error": "未登录"}, 401)
+        data = self.json_body()
+        content = (data.get("content") or "").strip()
+        if not content or len(content) > 260:
+            return self.send_json({"error": "留言不能为空，且不超过260字"}, 400)
+        safe_content = content.replace("<", "&lt;").replace(">", "&gt;")
+        conn = sqlite3.connect(DB_PATH)
+        cur = conn.cursor()
+        cur.execute(
+            "INSERT INTO messages_user (username, content) VALUES (?, ?)",
+            (session["username"], safe_content),
+        )
+        conn.commit()
+        conn.close()
+        self.send_json({"message": "留言已发布到游客区"}, 201)
 
     # --- Admin endpoints
     def api_admin_login(self):

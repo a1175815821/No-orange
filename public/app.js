@@ -74,6 +74,24 @@ async function loadPublicMessages() {
     .join("");
 }
 
+async function loadPublicUserMessages() {
+  const res = await api("/api/public/user-messages");
+  if (!res.ok) return;
+  const data = await res.json();
+  const list = data.items || [];
+  const wrap = document.getElementById("userMessageList");
+  if (!wrap) return;
+  wrap.innerHTML = list
+    .map(
+      (m) => `
+        <div class="message-item">
+          <div>${m.content}</div>
+          <div class="message-meta">${m.username} · ${m.created_at}</div>
+        </div>`
+    )
+    .join("");
+}
+
 function setupPublicMessageForm() {
   const form = document.getElementById("publicMessageForm");
   if (!form) return; // 仅 A 页面需要
@@ -440,6 +458,32 @@ function bindPrivateMessageForm() {
   });
 }
 
+function bindUserMessageForm() {
+  const form = document.getElementById("userMessageForm");
+  const hint = document.getElementById("userMessageHint");
+  if (!form || !hint) return;
+  form.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    if (!requireUser()) {
+      hint.textContent = "登录后才能发布正式留言";
+      return;
+    }
+    const data = Object.fromEntries(new FormData(form).entries());
+    const res = await api("/api/secret/user-messages", {
+      method: "POST",
+      headers: { Authorization: `Bearer ${state.userToken}` },
+      body: JSON.stringify(data),
+    });
+    const json = await res.json();
+    hint.textContent = json.message || json.error;
+    if (res.ok) {
+      form.reset();
+      loadPublicUserMessages();
+      loadProfile();
+    }
+  });
+}
+
 async function loadPrivateMessages() {
   if (!requireUser()) return;
   const res = await api("/api/secret/messages", {
@@ -461,17 +505,19 @@ async function loadPrivateMessages() {
 async function loadProfile() {
   const card = document.getElementById("userProfile");
   if (!card || !requireUser()) return;
-  const res = await api("/api/auth/me", {
-    headers: { Authorization: `Bearer ${state.userToken}` },
-  });
-  if (!res.ok) return;
-  const data = await res.json();
+  const [meRes, statRes] = await Promise.all([
+    api("/api/auth/me", { headers: { Authorization: `Bearer ${state.userToken}` } }),
+    api("/api/auth/summary", { headers: { Authorization: `Bearer ${state.userToken}` } }),
+  ]);
+  if (!meRes.ok || !statRes.ok) return;
+  const me = await meRes.json();
+  const stat = await statRes.json();
   card.innerHTML = `
     <div class="subhead">已登录</div>
-    <div class="profile-row"><strong>${data.username}</strong></div>
-    <div class="muted">注册IP: ${data.registration_ip || "-"}</div>
-    <div class="muted">注册时间: ${data.created_at || "-"}</div>
-    <div class="muted">最近登录: ${data.last_login_at || "-"} ${data.last_login_ip ? "@" + data.last_login_ip : ""}</div>
+    <div class="profile-row"><strong>${me.username}</strong></div>
+    <div class="muted">花园注册人数：${stat.user_count || 0}</div>
+    <div class="muted">写过日记的朋友：${stat.poster_count || 0}</div>
+    <div class="muted">正式留言累计：${stat.user_messages || 0}</div>
   `;
 }
 
@@ -536,6 +582,7 @@ function init() {
   if (PAGE === "public") {
     loadPublicDiaries();
     loadPublicMessages();
+    loadPublicUserMessages();
     setupPublicMessageForm();
     const refresh = document.getElementById("refreshDiaries");
     if (refresh) refresh.addEventListener("click", loadPublicDiaries);
@@ -547,6 +594,7 @@ function init() {
     bindAuthForms();
     bindDiaryForm();
     bindPrivateMessageForm();
+    bindUserMessageForm();
   }
 
   // C 页面：后台管理
