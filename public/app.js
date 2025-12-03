@@ -13,7 +13,6 @@ const PAGE = document.currentScript?.dataset.page || "public";
 const state = {
   userToken: localStorage.getItem("userToken") || "",
   adminToken: localStorage.getItem("adminToken") || "",
-  currentUserName: localStorage.getItem("currentUserName") || "",
 };
 
 function updateClock() {
@@ -30,48 +29,37 @@ setInterval(updateClock, 1000);
 updateClock();
 
 async function loadPublicDiaries() {
+  const res = await api("/api/public/diaries");
+  const data = await res.json();
+  const list = data.items || [];
   const heroList = document.getElementById("publicDiaryList");
   const timeline = document.getElementById("timeline");
   if (heroList) heroList.innerHTML = "";
   if (timeline) timeline.innerHTML = "";
-  try {
-    const res = await api("/api/public/diaries");
-    if (!res.ok) throw new Error("load_failed");
-    const data = await res.json();
-    const list = data.items || [];
-    if (!list.length) {
-      if (heroList) heroList.innerHTML = '<div class="muted">暂时没有公开的花瓣</div>';
-      if (timeline) timeline.innerHTML = '<div class="muted">这里还空空的，等一等会有新日记。</div>';
-      return;
+  list.forEach((item) => {
+    if (heroList) {
+      const pill = document.createElement("div");
+      pill.className = "card-pill";
+      pill.innerHTML = `<div class="badge">${item.author}</div><div>${item.title}</div><small class="muted">${item.created_at}</small>`;
+      heroList.appendChild(pill);
     }
-    list.forEach((item) => {
-      if (heroList) {
-        const pill = document.createElement("div");
-        pill.className = "card-pill";
-        pill.innerHTML = `<div class="badge">${item.author}</div><div>${item.title}</div><small class="muted">${item.created_at}</small>`;
-        heroList.appendChild(pill);
-      }
 
-      // 时间线样式：一条条按创建时间垂直排列
-      if (timeline) {
-        const row = document.createElement("div");
-        row.className = "timeline__item";
-        row.innerHTML = `
-          <div class="dot"></div>
-          <div class="line"></div>
-          <div class="timeline__card">
-            <div class="timeline__meta">${item.created_at} · ${item.author}</div>
-            <div class="timeline__title">${item.title}</div>
-            <p class="muted">${item.excerpt || "..."}</p>
-          </div>
-        `;
-        timeline.appendChild(row);
-      }
-    });
-  } catch (err) {
-    if (heroList) heroList.innerHTML = '<div class="muted">加载失败，请稍后再试。</div>';
-    if (timeline) timeline.innerHTML = '<div class="muted">花瓣躲起来了，点右上角刷新试试。</div>';
-  }
+    // 时间线样式：一条条按创建时间垂直排列
+    if (timeline) {
+      const row = document.createElement("div");
+      row.className = "timeline__item";
+      row.innerHTML = `
+        <div class="dot"></div>
+        <div class="line"></div>
+        <div class="timeline__card">
+          <div class="timeline__meta">${item.created_at} · ${item.author}</div>
+          <div class="timeline__title">${item.title}</div>
+          <p class="muted">${item.excerpt || "..."}</p>
+        </div>
+      `;
+      timeline.appendChild(row);
+    }
+  });
 }
 
 async function loadPublicMessages() {
@@ -154,9 +142,7 @@ function requireUser() {
 
 function logoutUser() {
   state.userToken = "";
-  state.currentUserName = "";
   localStorage.removeItem("userToken");
-  localStorage.removeItem("currentUserName");
   document.getElementById("secretModal")?.classList.remove("active");
   updateAuthButton();
   loadUserSummary();
@@ -206,9 +192,7 @@ function bindAuthForms() {
         return;
       }
       state.userToken = data.token;
-      state.currentUserName = data.username || "";
       localStorage.setItem("userToken", data.token);
-      if (state.currentUserName) localStorage.setItem("currentUserName", state.currentUserName);
       hint.textContent = `欢迎回来，${data.username}`;
       document.getElementById("secretModal")?.classList.remove("active");
       loadSecretArea();
@@ -235,9 +219,7 @@ function bindAuthForms() {
         return;
       }
       state.userToken = data.token;
-      state.currentUserName = data.username || "";
       localStorage.setItem("userToken", data.token);
-      if (state.currentUserName) localStorage.setItem("currentUserName", state.currentUserName);
       regHint.textContent = `注册成功，欢迎 ${data.username}`;
       document.getElementById("secretModal")?.classList.remove("active");
       loadSecretArea();
@@ -253,15 +235,10 @@ async function loadSecretArea() {
     headers: { Authorization: `Bearer ${state.userToken}` },
   });
   if (!res.ok) {
-    if (res.status === 401) logoutUser();
     return;
   }
   const data = await res.json();
   const list = data.items || [];
-  if (!state.currentUserName && list[0]?.author) {
-    state.currentUserName = list[0].author;
-    localStorage.setItem("currentUserName", state.currentUserName);
-  }
   const wrap = document.getElementById("secretDiaryList");
   const adminWrap = document.getElementById("adminDiaryList");
   if (wrap) wrap.innerHTML = "";
@@ -561,25 +538,12 @@ async function loadPrivateMessages() {
   const data = await res.json();
   const list = data.items || [];
   const wrap = document.getElementById("privateMessages");
-  const receivedWrap = document.getElementById("receivedMessages");
-  const me = state.currentUserName || "";
   if (wrap) {
     wrap.innerHTML = list
       .map(
         (m, idx) => `<div class="bubble ${idx % 2 === 0 ? "me" : "you"}"><small>${m.from_name} → ${m.to_name} · ${m.created_at}</small>${m.content}</div>`
       )
       .join("");
-  }
-  if (receivedWrap) {
-    const received = me ? list.filter((m) => m.to_name === me) : [];
-    receivedWrap.innerHTML = received.length
-      ? received
-          .map(
-            (m) =>
-              `<div class="bubble you"><small>${m.from_name} → ${m.to_name} · ${m.created_at}</small>${m.content}</div>`
-          )
-          .join("")
-      : '<div class="muted">暂时没有收到新的纸条</div>';
   }
 }
 
@@ -595,19 +559,9 @@ async function loadUserSummary() {
     api("/api/auth/me", { headers: { Authorization: `Bearer ${state.userToken}` } }),
     api("/api/auth/summary", { headers: { Authorization: `Bearer ${state.userToken}` } }),
   ]);
-  if (!meRes.ok || !statRes.ok) {
-    if (meRes.status === 401 || statRes.status === 401) {
-      logoutUser();
-      panel.textContent = "登录状态已失效，请重新登录。";
-    } else {
-      panel.textContent = "加载信息失败，请稍后再试。";
-    }
-    return;
-  }
+  if (!meRes.ok || !statRes.ok) return;
   const me = await meRes.json();
   const stat = await statRes.json();
-  state.currentUserName = me.username || state.currentUserName;
-  if (state.currentUserName) localStorage.setItem("currentUserName", state.currentUserName);
   const created = me.created_at ? new Date(me.created_at) : null;
   const days = created ? Math.max(1, Math.floor((Date.now() - created.getTime()) / 86400000) + 1) : 1;
   panel.innerHTML = `
@@ -616,9 +570,6 @@ async function loadUserSummary() {
     <div class="muted">注册朋友：${stat.user_count || 0} · 写过日记：${stat.poster_count || 0}</div>
     <div class="muted">正式留言：${stat.user_messages || 0}</div>
   `;
-  if (PAGE === "secret") {
-    loadPrivateMessages();
-  }
   updateAuthButton();
 }
 
