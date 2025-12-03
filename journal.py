@@ -452,6 +452,14 @@ class GardenHandler(SimpleHTTPRequestHandler):
             (session["username"],),
         )
         row = cur.fetchone()
+        if not row or not verify_password(password, row[1]):
+            conn.close()
+            return self.send_json({"error": "账号或密码错误"}, 401)
+        cur.execute(
+            "UPDATE users SET last_login_ip=?, last_login_at=CURRENT_TIMESTAMP WHERE id=?",
+            (ip, row[0]),
+        )
+        conn.commit()
         conn.close()
         if not row:
             return self.send_json({"error": "未找到用户"}, 404)
