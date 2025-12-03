@@ -119,7 +119,13 @@ function setupSecretModal() {
   const trigger = $("#openSecret");
   const modal = document.getElementById("secretModal");
   if (!trigger || !modal) return;
-  trigger.addEventListener("click", () => modal.classList.add("active"));
+  trigger.addEventListener("click", () => {
+    if (requireUser()) {
+      logoutUser();
+    } else {
+      modal.classList.add("active");
+    }
+  });
   $("#closeModal").addEventListener("click", () => modal.classList.remove("active"));
   modal.addEventListener("click", (e) => {
     if (e.target === modal) modal.classList.remove("active");
@@ -134,11 +140,44 @@ function requireUser() {
   return state.userToken;
 }
 
+function logoutUser() {
+  state.userToken = "";
+  localStorage.removeItem("userToken");
+  document.getElementById("secretModal")?.classList.remove("active");
+  updateAuthButton();
+  loadUserSummary();
+  const diaryList = document.getElementById("secretDiaryList");
+  if (diaryList) diaryList.innerHTML = "";
+  const privateList = document.getElementById("privateMessages");
+  if (privateList) privateList.innerHTML = "";
+}
+
+function updateAuthButton() {
+  const trigger = document.getElementById("openSecret");
+  if (!trigger) return;
+  trigger.textContent = requireUser() ? "退出登录" : "登录 / 注册";
+}
+
 function bindAuthForms() {
   const loginForm = document.getElementById("secretLoginForm");
   const registerForm = document.getElementById("registerForm");
   const hint = document.getElementById("secretHint");
   const regHint = document.getElementById("registerHint");
+  const tabs = document.querySelectorAll(".auth-tabs .tab");
+  const panes = document.querySelectorAll(".auth-pane");
+
+  tabs.forEach((btn) => {
+    btn.addEventListener("click", () => {
+      tabs.forEach((b) => b.classList.remove("active"));
+      panes.forEach((pane) => pane.classList.remove("active"));
+      btn.classList.add("active");
+      const mode = btn.dataset.mode;
+      panes.forEach((pane) => pane.setAttribute("aria-hidden", "true"));
+      const target = document.querySelector(mode === "login" ? "#secretLoginForm" : "#registerForm");
+      target?.classList.add("active");
+      target?.setAttribute("aria-hidden", "false");
+    });
+  });
   if (loginForm && hint) {
     loginForm.addEventListener("submit", async (e) => {
       e.preventDefault();
@@ -157,7 +196,8 @@ function bindAuthForms() {
       hint.textContent = `欢迎回来，${data.username}`;
       document.getElementById("secretModal")?.classList.remove("active");
       loadSecretArea();
-      loadProfile();
+      loadUserSummary();
+      updateAuthButton();
     });
   }
 
@@ -165,6 +205,10 @@ function bindAuthForms() {
     registerForm.addEventListener("submit", async (e) => {
       e.preventDefault();
       const payload = Object.fromEntries(new FormData(registerForm).entries());
+      if (payload.password !== payload.confirm_password) {
+        regHint.textContent = "两次密码不一致";
+        return;
+      }
       const res = await api("/api/auth/register", {
         method: "POST",
         body: JSON.stringify(payload),
@@ -179,7 +223,8 @@ function bindAuthForms() {
       regHint.textContent = `注册成功，欢迎 ${data.username}`;
       document.getElementById("secretModal")?.classList.remove("active");
       loadSecretArea();
-      loadProfile();
+      loadUserSummary();
+      updateAuthButton();
     });
   }
 }
@@ -479,7 +524,7 @@ function bindUserMessageForm() {
     if (res.ok) {
       form.reset();
       loadPublicUserMessages();
-      loadProfile();
+      loadUserSummary();
     }
   });
 }
@@ -502,9 +547,14 @@ async function loadPrivateMessages() {
   }
 }
 
-async function loadProfile() {
-  const card = document.getElementById("userProfile");
-  if (!card || !requireUser()) return;
+async function loadUserSummary() {
+  const panel = document.getElementById("userSummary");
+  if (!panel) return;
+  if (!requireUser()) {
+    panel.textContent = "登录后展示你的用户名与加入天数。";
+    updateAuthButton();
+    return;
+  }
   const [meRes, statRes] = await Promise.all([
     api("/api/auth/me", { headers: { Authorization: `Bearer ${state.userToken}` } }),
     api("/api/auth/summary", { headers: { Authorization: `Bearer ${state.userToken}` } }),
@@ -512,13 +562,15 @@ async function loadProfile() {
   if (!meRes.ok || !statRes.ok) return;
   const me = await meRes.json();
   const stat = await statRes.json();
-  card.innerHTML = `
-    <div class="subhead">已登录</div>
-    <div class="profile-row"><strong>${me.username}</strong></div>
-    <div class="muted">花园注册人数：${stat.user_count || 0}</div>
-    <div class="muted">写过日记的朋友：${stat.poster_count || 0}</div>
-    <div class="muted">正式留言累计：${stat.user_messages || 0}</div>
+  const created = me.created_at ? new Date(me.created_at) : null;
+  const days = created ? Math.max(1, Math.floor((Date.now() - created.getTime()) / 86400000) + 1) : 1;
+  panel.innerHTML = `
+    <div class="subhead">${me.username}</div>
+    <div class="muted">已在花园的第 ${days} 天</div>
+    <div class="muted">注册朋友：${stat.user_count || 0} · 写过日记：${stat.poster_count || 0}</div>
+    <div class="muted">正式留言：${stat.user_messages || 0}</div>
   `;
+  updateAuthButton();
 }
 
 function bindAdminLogin() {
@@ -565,9 +617,12 @@ async function loadStats() {
 
 function handleSecretPersistence() {
   // 只在对应页面恢复，避免不必要的 API 调用
-  if (PAGE === "secret" && state.userToken) {
-    loadSecretArea();
-    loadProfile();
+  if (PAGE === "secret") {
+    updateAuthButton();
+    loadUserSummary();
+    if (state.userToken) {
+      loadSecretArea();
+    }
   }
   if (PAGE === "admin" && state.adminToken) {
     loadStats();

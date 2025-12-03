@@ -395,8 +395,11 @@ class GardenHandler(SimpleHTTPRequestHandler):
         data = self.json_body()
         username = (data.get("username") or "").strip()
         password = data.get("password") or ""
+        confirm = data.get("confirm_password") or ""
         if len(username) < 3 or len(password) < 6:
             return self.send_json({"error": "用户名至少3个字符，密码至少6位"}, 400)
+        if password != confirm:
+            return self.send_json({"error": "两次输入的密码不一致"}, 400)
         conn = sqlite3.connect(DB_PATH)
         cur = conn.cursor()
         try:
@@ -501,7 +504,7 @@ class GardenHandler(SimpleHTTPRequestHandler):
             """
             SELECT id, author_name, title, content, is_public, created_at
             FROM diaries
-            WHERE is_public=1 OR author_name=?
+            WHERE author_name=?
             ORDER BY created_at DESC
             """,
             (session["username"],),
