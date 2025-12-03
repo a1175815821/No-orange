@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>个人日记 · Secret Garden</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700&family=Noto+Serif+SC:wght@400;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+  <div class="backdrop">
+    <div class="glow glow-1"></div>
+    <div class="glow glow-2"></div>
+    <div class="stars"></div>
+    <div class="fireflies" aria-hidden="true"></div>
+  </div>
+
+  <header class="hero" id="public">
+    <div class="hero__content">
+      <p class="eyebrow">夜色中的温柔</p>
+      <h1>个人日记 · <span>Secret Garden</span></h1>
+      <p class="lede">这里是被时间温柔包裹的小花园，你只能看到一点点，剩下的藏在秘密里。花朵会随着故事缓慢生长。</p>
+      <div class="hero__actions">
+        <button class="btn" id="openSecret">进入 Secret Garden 深处</button>
+        <a class="btn ghost" href="#public-diaries">看看花园边缘</a>
+      </div>
+      <div class="hero__flower">
+        <div class="stem"></div>
+        <div class="petal petal-1"></div>
+        <div class="petal petal-2"></div>
+        <div class="petal petal-3"></div>
+        <div class="petal petal-4"></div>
+        <div class="center"></div>
+      </div>
+    </div>
+    <div class="hero__panel">
+      <div class="glass-card">
+        <p class="panel-title">公开日记摘抄</p>
+        <div id="publicDiaryList" class="card-list"></div>
+      </div>
+    </div>
+  </header>
+
+  <main>
+    <section class="section" id="public-diaries">
+      <div class="section__header">
+        <div>
+          <p class="eyebrow">A · 游客入口</p>
+          <h2>篱笆外的小片段</h2>
+          <p class="muted">公开日记以卡片形式放在篱笆外，花瓣轻轻摇晃，暗示里面有更完整的故事。</p>
+        </div>
+        <button class="btn soft" id="refreshDiaries">刷新花瓣</button>
+      </div>
+      <div id="diaryGrid" class="diary-grid"></div>
+    </section>
+
+    <section class="section" id="guest-messages">
+      <div class="section__header">
+        <div>
+          <p class="eyebrow">游客留言</p>
+          <h2>悄悄说一句</h2>
+          <p class="muted">留言会被温柔展示，也有简单的冷却保护，防止喧闹打扰夜晚。</p>
+        </div>
+      </div>
+      <div class="message-board glass-card">
+        <form id="publicMessageForm" class="message-form">
+          <input type="text" name="nickname" placeholder="你的名字（可选）" maxlength="24" />
+          <textarea name="content" placeholder="想说的话…" maxlength="260" required></textarea>
+          <button class="btn" type="submit">播种留言</button>
+          <p class="form-hint" id="publicMessageHint"></p>
+        </form>
+        <div id="publicMessageList" class="message-list"></div>
+      </div>
+    </section>
+
+    <section class="section secret" id="secret-area">
+      <div class="section__header">
+        <div>
+          <p class="eyebrow">B · 私密 2 人空间</p>
+          <h2>Welcome to Our Secret Garden</h2>
+          <p class="muted">输入密码后，日记、纸条与花朵都归属于我们两人。默认密码：moonlight（可在后台更改）。</p>
+        </div>
+        <div class="tiny-meta" id="clock"></div>
+      </div>
+      <div class="grid two-col">
+        <div class="glass-card pad">
+          <div class="subhead">写一篇日记</div>
+          <form id="diaryForm" class="stack">
+            <div class="field-row">
+              <input name="author" placeholder="作者（如 Yingxue）" maxlength="24" required />
+              <input name="title" placeholder="标题" maxlength="80" required />
+            </div>
+            <textarea name="content" placeholder="正文…" rows="5" required></textarea>
+            <label class="checkbox"><input type="checkbox" name="is_public" /> 允许片段在游客区展示</label>
+            <button class="btn" type="submit">保存日记</button>
+            <p class="form-hint" id="diaryHint"></p>
+          </form>
+        </div>
+        <div class="glass-card pad">
+          <div class="subhead">日记列表</div>
+          <div id="secretDiaryList" class="diary-list"></div>
+        </div>
+      </div>
+      <div class="glass-card pad" id="private-notes">
+        <div class="subhead">我们的小纸条</div>
+        <form id="privateMessageForm" class="stack">
+          <div class="field-row">
+            <input name="from_name" placeholder="我" maxlength="20" required />
+            <input name="to_name" placeholder="想对谁说" maxlength="20" required />
+          </div>
+          <textarea name="content" placeholder="写下悄悄话…" rows="3" maxlength="300" required></textarea>
+          <button class="btn soft" type="submit">送出纸条</button>
+          <p class="form-hint" id="privateHint"></p>
+        </form>
+        <div id="privateMessages" class="bubble-list"></div>
+      </div>
+    </section>
+
+    <section class="section admin" id="admin-area">
+      <div class="section__header">
+        <div>
+          <p class="eyebrow">C · 后台管理</p>
+          <h2>Secret Garden Console</h2>
+          <p class="muted">更偏控制台风格的温柔面板，管理日记与留言。默认账号 admin / garden-admin。</p>
+        </div>
+      </div>
+      <div class="grid two-col">
+        <div class="glass-card pad">
+          <div class="subhead">管理员登录</div>
+          <form id="adminLoginForm" class="stack">
+            <input name="username" placeholder="用户名" required />
+            <input name="password" type="password" placeholder="密码" required />
+            <button class="btn" type="submit">登录后台</button>
+            <p class="form-hint" id="adminHint"></p>
+          </form>
+          <div class="stat-board" id="statBoard"></div>
+        </div>
+        <div class="glass-card pad">
+          <div class="subhead">公开状态切换</div>
+          <div id="adminDiaryList" class="admin-list"></div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <div class="modal" id="secretModal" aria-hidden="true">
+    <div class="modal__content glass-card">
+      <button class="close" id="closeModal">×</button>
+      <h3>进入 Secret Garden 深处</h3>
+      <p class="muted">只有我们两个人知道的密码，默认是 moonlight。</p>
+      <form id="secretLoginForm" class="stack">
+        <input type="password" name="password" placeholder="密码" required />
+        <button class="btn" type="submit">打开花园</button>
+        <p class="form-hint" id="secretHint"></p>
+      </form>
+    </div>
+  </div>
+
+  <script src="/app.js"></script>
+</body>
+</html>
