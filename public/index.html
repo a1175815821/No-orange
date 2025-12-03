@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>个人日记 · Secret Garden</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700&family=Noto+Serif+SC:wght@400;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+  <div class="backdrop">
+    <div class="glow glow-1"></div>
+    <div class="glow glow-2"></div>
+    <div class="stars"></div>
+    <div class="fireflies" aria-hidden="true"></div>
+  </div>
+
+  <!-- 公共 A 界面：访客入口，保留柔和的花园氛围与时间线样式 -->
+  <header class="hero" id="public">
+    <div class="hero__content">
+      <p class="eyebrow">夜色中的温柔</p>
+      <h1>个人日记 · <span>Secret Garden</span></h1>
+      <p class="lede">这里是被时间温柔包裹的小花园，你只能看到一点点，剩下的藏在秘密里。花朵会随着故事缓慢生长。</p>
+      <div class="hero__actions">
+        <a class="btn" href="/secret.html" aria-label="前往 B 私密花园">进入 Secret Garden 深处</a>
+        <a class="btn ghost" href="#public-diaries">看看花园边缘</a>
+      </div>
+      <div class="hero__flower">
+        <div class="stem"></div>
+        <div class="petal petal-1"></div>
+        <div class="petal petal-2"></div>
+        <div class="petal petal-3"></div>
+        <div class="petal petal-4"></div>
+        <div class="center"></div>
+      </div>
+    </div>
+    <div class="hero__panel">
+      <div class="glass-card">
+        <p class="panel-title">公开日记摘抄</p>
+        <div id="publicDiaryList" class="card-list"></div>
+      </div>
+    </div>
+  </header>
+
+  <main>
+    <section class="section" id="public-diaries">
+      <div class="section__header">
+        <div>
+          <p class="eyebrow">A · 游客入口</p>
+          <h2>篱笆外的小片段</h2>
+          <p class="muted">公开日记改为时间线，一条条顺着篱笆延伸；节奏慢，光点像是在听故事。</p>
+        </div>
+        <button class="btn soft" id="refreshDiaries">刷新花瓣</button>
+      </div>
+      <div id="timeline" class="timeline"></div>
+    </section>
+
+    <section class="section" id="guest-messages">
+      <div class="section__header">
+        <div>
+          <p class="eyebrow">游客留言</p>
+          <h2>悄悄说一句</h2>
+          <p class="muted">留言会被温柔展示，也有简单的冷却保护，防止喧闹打扰夜晚。</p>
+        </div>
+      </div>
+      <div class="message-board glass-card">
+        <form id="publicMessageForm" class="message-form">
+          <input type="text" name="nickname" placeholder="你的名字（可选）" maxlength="24" />
+          <textarea name="content" placeholder="想说的话…" maxlength="260" required></textarea>
+          <button class="btn" type="submit">播种留言</button>
+          <p class="form-hint" id="publicMessageHint"></p>
+        </form>
+        <div id="publicMessageList" class="message-list"></div>
+      </div>
+    </section>
+  </main>
+
+  <!-- 轻量隐藏入口：右下角的月亮按钮进入私密花园；左下角微型花朵进入后台登录 -->
+  <div class="corner-nav">
+    <a class="corner-btn" href="/secret.html" title="进入 B 私密花园" aria-label="进入私密花园">🌙</a>
+    <a class="corner-btn ghost" href="/admin.html" title="管理员通道" aria-label="管理员入口">✿</a>
+  </div>
+
+  <script src="/app.js" data-page="public"></script>
+</body>
+</html>
