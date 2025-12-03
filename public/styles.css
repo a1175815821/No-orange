@@ -81,6 +81,10 @@ a {
 @keyframes float {
   to { transform: translateY(-40px) translateX(-15px); opacity: 0.7; }
 }
+@keyframes floatIn {
+  from { opacity: 0; transform: translateY(18px) scale(0.98); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
 
 .hero {
   display: grid;
@@ -128,6 +132,8 @@ a {
   background: rgba(255,255,255,0.04);
   position: relative;
   overflow: hidden;
+  animation: floatIn 0.7s ease both;
+  transition: transform 0.35s ease, border-color 0.35s ease, box-shadow 0.35s ease;
 }
 .card-pill::after {
   content: "";
@@ -137,7 +143,14 @@ a {
   opacity: 0;
   transition: opacity 0.3s ease;
 }
+.card-pill:hover { transform: translateY(-3px); border-color: rgba(255,255,255,0.4); box-shadow: 0 14px 30px rgba(0,0,0,0.28); }
 .card-pill:hover::after { opacity: 1; }
+.card-pill:nth-child(1) { animation-delay: 0.06s; }
+.card-pill:nth-child(2) { animation-delay: 0.12s; }
+.card-pill:nth-child(3) { animation-delay: 0.18s; }
+.card-pill:nth-child(4) { animation-delay: 0.24s; }
+.card-pill:nth-child(5) { animation-delay: 0.3s; }
+.card-pill:nth-child(6) { animation-delay: 0.36s; }
 
 .glass-card {
   background: var(--glass);
@@ -159,9 +172,10 @@ a {
   background: rgba(255,255,255,0.04);
   position: relative;
   overflow: hidden;
-  transition: transform 0.3s ease, border-color 0.3s ease;
+  transition: transform 0.35s ease, border-color 0.35s ease, box-shadow 0.35s ease;
+  animation: floatIn 0.9s ease both;
 }
-.diary-card:hover { transform: translateY(-6px); border-color: rgba(255,255,255,0.4); }
+.diary-card:hover { transform: translateY(-6px); border-color: rgba(255,255,255,0.4); box-shadow: 0 18px 36px rgba(0,0,0,0.32); }
 .diary-card .badge { display: inline-block; padding: 4px 10px; border-radius: 999px; background: rgba(255,181,216,0.12); color: var(--pink); font-size: 12px; }
 
 .message-board { padding: 20px; }
@@ -177,7 +191,8 @@ a {
 .message-form textarea { resize: vertical; min-height: 90px; }
 .form-hint { color: var(--pink); min-height: 20px; }
 .message-list { display: grid; gap: 10px; max-height: 320px; overflow-y: auto; }
-.message-item { padding: 12px 14px; border-radius: 12px; background: rgba(255,255,255,0.05); border: 1px solid var(--border); }
+.message-item { padding: 12px 14px; border-radius: 12px; background: rgba(255,255,255,0.05); border: 1px solid var(--border); animation: floatIn 0.65s ease both; transition: transform 0.25s ease, border-color 0.25s ease, box-shadow 0.25s ease; }
+.message-item:hover { transform: translateY(-2px); border-color: rgba(255,255,255,0.28); box-shadow: 0 12px 24px rgba(0,0,0,0.22); }
 .message-meta { font-size: 12px; color: var(--muted); }
 
 .secret { background: linear-gradient(180deg, rgba(255,255,255,0.03), transparent); }
@@ -189,7 +204,8 @@ a {
 .checkbox { display: flex; align-items: center; gap: 8px; color: var(--muted); font-size: 14px; }
 
 .diary-list { display: grid; gap: 10px; max-height: 320px; overflow-y: auto; }
-.diary-item { padding: 12px; border-radius: 12px; background: rgba(255,255,255,0.05); border: 1px solid var(--border); }
+.diary-item { padding: 12px; border-radius: 12px; background: rgba(255,255,255,0.05); border: 1px solid var(--border); animation: floatIn 0.75s ease both; transition: transform 0.28s ease, border-color 0.28s ease, box-shadow 0.28s ease; }
+.diary-item:hover { transform: translateY(-4px); border-color: rgba(255,255,255,0.32); box-shadow: 0 12px 28px rgba(0,0,0,0.28); }
 .diary-item .title { font-weight: 700; }
 .diary-item .tools { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 8px; }
 .tool { padding: 6px 10px; background: rgba(255,255,255,0.07); border-radius: 999px; cursor: pointer; border: 1px solid rgba(255,255,255,0.12); font-size: 12px; }
@@ -212,7 +228,7 @@ a {
   background: linear-gradient(var(--pink), rgba(255,255,255,0));
   opacity: 0.5;
 }
-.timeline__item { position: relative; padding-left: 42px; display: grid; gap: 6px; }
+.timeline__item { position: relative; padding-left: 42px; display: grid; gap: 6px; animation: floatIn 0.8s ease both; }
 .timeline__item .dot {
   position: absolute;
   left: 6px;
@@ -236,7 +252,15 @@ a {
   border: 1px solid var(--border);
   background: rgba(255,255,255,0.05);
   box-shadow: 0 12px 30px rgba(0,0,0,0.25);
+  transition: transform 0.35s ease, border-color 0.35s ease, box-shadow 0.35s ease;
 }
+.timeline__card:hover { transform: translateY(-4px); border-color: rgba(255,255,255,0.3); box-shadow: 0 16px 34px rgba(0,0,0,0.3); }
+.timeline__item:nth-child(1) { animation-delay: 0.05s; }
+.timeline__item:nth-child(2) { animation-delay: 0.12s; }
+.timeline__item:nth-child(3) { animation-delay: 0.19s; }
+.timeline__item:nth-child(4) { animation-delay: 0.26s; }
+.timeline__item:nth-child(5) { animation-delay: 0.33s; }
+.timeline__item:nth-child(6) { animation-delay: 0.4s; }
 .timeline__meta { font-size: 13px; color: var(--muted); }
 .timeline__title { font-weight: 700; margin: 4px 0; }
 
