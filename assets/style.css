@@ -625,6 +625,14 @@ section {
     transform: translate3d(8px, -8px, 0);
 }
 
+.project-card:active {
+    box-shadow:
+            0 0 35px rgba(255, 200, 255, 0.55),
+            0 0 12px rgba(157, 223, 255, 0.7);
+    background: rgba(255, 255, 255, 0.12);
+    transition: box-shadow 0.15s ease, background 0.15s ease;
+}
+
 /* ============ 技能 / 标签云区域 ============ */
 .skills-cloud {
     padding: 26px 24px 24px;
@@ -955,7 +963,7 @@ footer {
     }
 
     .nav-links-mobile {
-        display: flex;
+        display: none;
         flex-direction: column;
         gap: 12px;
         padding: 12px 0 16px;
@@ -966,6 +974,7 @@ footer {
     }
 
     .nav-open .nav-links-mobile {
+        display: flex;
         animation: fadeDown 0.3s ease forwards;
     }
 
