@@ -284,6 +284,8 @@ a {
 .admin { background: linear-gradient(180deg, transparent, rgba(255,255,255,0.03)); }
 .admin-list { display: grid; gap: 10px; max-height: 320px; overflow-y: auto; }
 .admin-row { padding: 12px; border-radius: 12px; border: 1px solid var(--border); background: rgba(255,255,255,0.04); display: grid; gap: 6px; }
+.action-group { display: flex; gap: 8px; align-items: center; }
+.profile-row { display: flex; justify-content: space-between; align-items: center; }
 .stat-board { margin-top: 10px; display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 8px; }
 .stat-card { padding: 12px; border-radius: 12px; background: rgba(255,255,255,0.06); border: 1px solid var(--border); }
 

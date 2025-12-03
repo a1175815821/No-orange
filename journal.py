@@ -13,6 +13,9 @@ PUBLIC_DIR = Path(__file__).parent / "public"
 SESSIONS = {}
 PUBLIC_MESSAGE_COOLDOWN = 12  # seconds between public messages per IP
 LAST_PUBLIC_MESSAGE = {}
+LOGIN_ATTEMPTS = {}
+LOGIN_WINDOW = 60
+LOGIN_MAX_ATTEMPTS = 8
 
 
 def hash_password(password: str) -> str:
@@ -42,10 +45,21 @@ def init_db():
             username TEXT UNIQUE,
             role TEXT,
             password_hash TEXT,
+            registration_ip TEXT,
+            last_login_ip TEXT,
+            last_login_at DATETIME,
             created_at DATETIME DEFAULT CURRENT_TIMESTAMP
         )
         """
     )
+    cur.execute("PRAGMA table_info(users)")
+    columns = {row[1] for row in cur.fetchall()}
+    if "registration_ip" not in columns:
+        cur.execute("ALTER TABLE users ADD COLUMN registration_ip TEXT")
+    if "last_login_ip" not in columns:
+        cur.execute("ALTER TABLE users ADD COLUMN last_login_ip TEXT")
+    if "last_login_at" not in columns:
+        cur.execute("ALTER TABLE users ADD COLUMN last_login_at DATETIME")
     cur.execute(
         """
         CREATE TABLE IF NOT EXISTS diaries (
@@ -83,6 +97,16 @@ def init_db():
     )
     cur.execute(
         """
+        CREATE TABLE IF NOT EXISTS messages_user (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            username TEXT,
+            content TEXT,
+            created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+        )
+        """
+    )
+    cur.execute(
+        """
         CREATE TABLE IF NOT EXISTS settings (
             key TEXT PRIMARY KEY,
             value TEXT
@@ -94,8 +118,8 @@ def init_db():
     cur.execute("SELECT id FROM users WHERE username=?", ("admin",))
     if not cur.fetchone():
         cur.execute(
-            "INSERT INTO users (username, role, password_hash) VALUES (?, ?, ?)",
-            ("admin", "admin", hash_password("garden-admin")),
+            "INSERT INTO users (username, role, password_hash, registration_ip) VALUES (?, ?, ?, ?)",
+            ("admin", "admin", hash_password("garden-admin"), "system"),
         )
 
     # Seed shared secret password
@@ -158,7 +182,19 @@ def require_token(headers, role=None):
         return None
     if role and data.get("role") != role:
         return None
-    return token
+    return {**data, "token": token}
+
+
+def check_login_window(ip: str, key: str):
+    now = time.time()
+    attempts = LOGIN_ATTEMPTS.get((ip, key), [])
+    attempts = [t for t in attempts if now - t < LOGIN_WINDOW]
+    if len(attempts) >= LOGIN_MAX_ATTEMPTS:
+        LOGIN_ATTEMPTS[(ip, key)] = attempts
+        return False
+    attempts.append(now)
+    LOGIN_ATTEMPTS[(ip, key)] = attempts
+    return True
 
 
 class GardenHandler(SimpleHTTPRequestHandler):
@@ -229,8 +265,16 @@ class GardenHandler(SimpleHTTPRequestHandler):
                 return self.api_public_messages()
             if path == "/api/public/messages" and method == "POST":
                 return self.api_post_public_message()
-            if path == "/api/secret/login" and method == "POST":
-                return self.api_secret_login()
+            if path == "/api/public/user-messages" and method == "GET":
+                return self.api_public_user_messages()
+            if path == "/api/auth/register" and method == "POST":
+                return self.api_auth_register()
+            if path == "/api/auth/login" and method == "POST":
+                return self.api_auth_login()
+            if path == "/api/auth/me" and method == "GET":
+                return self.api_auth_me()
+            if path == "/api/auth/summary" and method == "GET":
+                return self.api_auth_summary()
             if path == "/api/secret/diaries" and method == "GET":
                 return self.api_secret_diaries()
             if path == "/api/secret/diaries" and method == "POST":
@@ -243,6 +287,8 @@ class GardenHandler(SimpleHTTPRequestHandler):
                 return self.api_secret_messages()
             if path == "/api/secret/messages" and method == "POST":
                 return self.api_secret_post_message()
+            if path == "/api/secret/user-messages" and method == "POST":
+                return self.api_secret_post_user_message()
             if path == "/api/admin/login" and method == "POST":
                 return self.api_admin_login()
             if path == "/api/admin/summary" and method == "GET":
@@ -251,10 +297,18 @@ class GardenHandler(SimpleHTTPRequestHandler):
                 return self.api_admin_diaries()
             if path.startswith("/api/admin/diaries/") and method == "PUT":
                 return self.api_admin_toggle_public(path)
+            if path == "/api/admin/messages/public" and method == "GET":
+                return self.api_admin_messages_public()
+            if path == "/api/admin/messages/private" and method == "GET":
+                return self.api_admin_messages_private()
+            if path.startswith("/api/admin/messages/public/") and method == "PUT":
+                return self.api_admin_update_public_message(path)
             if path.startswith("/api/admin/messages/public/") and method == "DELETE":
                 return self.api_admin_delete_public_message(path)
             if path.startswith("/api/admin/messages/private/") and method == "DELETE":
                 return self.api_admin_delete_private_message(path)
+            if path == "/api/admin/users" and method == "GET":
+                return self.api_admin_users()
             return self.send_json({"error": "Not found"}, 404)
         except Exception as exc:  # pragma: no cover - logging omitted for brevity
             self.send_json({"error": "Server error", "detail": str(exc)}, 500)
@@ -292,6 +346,24 @@ class GardenHandler(SimpleHTTPRequestHandler):
         conn.close()
         self.send_json({"items": messages})
 
+    def api_public_user_messages(self):
+        conn = sqlite3.connect(DB_PATH)
+        cur = conn.cursor()
+        cur.execute(
+            """
+            SELECT id, username, content, created_at
+            FROM messages_user
+            ORDER BY created_at DESC
+            LIMIT 80
+            """
+        )
+        items = [
+            {"id": row[0], "username": row[1], "content": row[2], "created_at": row[3]}
+            for row in cur.fetchall()
+        ]
+        conn.close()
+        self.send_json({"items": items})
+
     def api_post_public_message(self):
         ip = self.client_address[0]
         now = time.time()
@@ -315,27 +387,116 @@ class GardenHandler(SimpleHTTPRequestHandler):
         LAST_PUBLIC_MESSAGE[ip] = now
         self.send_json({"message": "感谢你的轻声留言"}, 201)
 
-    # --- Secret zone
-    def api_secret_login(self):
+    # --- Auth endpoints
+    def api_auth_register(self):
+        ip = self.client_address[0]
+        if not check_login_window(ip, "register"):
+            return self.send_json({"error": "尝试过于频繁，请稍后再试"}, 429)
         data = self.json_body()
+        username = (data.get("username") or "").strip()
+        password = data.get("password") or ""
+        if len(username) < 3 or len(password) < 6:
+            return self.send_json({"error": "用户名至少3个字符，密码至少6位"}, 400)
+        conn = sqlite3.connect(DB_PATH)
+        cur = conn.cursor()
+        try:
+            cur.execute(
+                "INSERT INTO users (username, role, password_hash, registration_ip) VALUES (?, ?, ?, ?)",
+                (username, "user", hash_password(password), ip),
+            )
+            conn.commit()
+        except sqlite3.IntegrityError:
+            conn.close()
+            return self.send_json({"error": "用户名已存在"}, 409)
+        conn.close()
+        token = make_token("user", username)
+        self.send_json({"token": token, "username": username}, 201)
+
+    def api_auth_login(self):
+        ip = self.client_address[0]
+        if not check_login_window(ip, "login"):
+            return self.send_json({"error": "尝试太多，请稍后重试"}, 429)
+        data = self.json_body()
+        username = data.get("username", "")
         password = data.get("password", "")
         conn = sqlite3.connect(DB_PATH)
         cur = conn.cursor()
-        cur.execute("SELECT value FROM settings WHERE key=?", ("secret_password",))
+        cur.execute(
+            "SELECT id, password_hash FROM users WHERE username=? AND role!='admin'",
+            (username,),
+        )
         row = cur.fetchone()
+        if not row or not verify_password(password, row[1]):
+            conn.close()
+            return self.send_json({"error": "账号或密码错误"}, 401)
+        cur.execute(
+            "UPDATE users SET last_login_ip=?, last_login_at=CURRENT_TIMESTAMP WHERE id=?",
+            (ip, row[0]),
+        )
+        conn.commit()
         conn.close()
-        if not row or not verify_password(password, row[0]):
-            return self.send_json({"error": "密码不对哦"}, 401)
-        token = make_token("secret")
-        self.send_json({"token": token})
+        token = make_token("user", username)
+        self.send_json({"token": token, "username": username})
 
-    def api_secret_diaries(self):
-        if not require_token(self.headers, role="secret"):
+    def api_auth_me(self):
+        session = require_token(self.headers, role="user")
+        if not session:
             return self.send_json({"error": "未登录"}, 401)
         conn = sqlite3.connect(DB_PATH)
         cur = conn.cursor()
         cur.execute(
-            "SELECT id, author_name, title, content, is_public, created_at FROM diaries ORDER BY created_at DESC"
+            "SELECT username, created_at, registration_ip, last_login_ip, last_login_at FROM users WHERE username=?",
+            (session["username"],),
+        )
+        row = cur.fetchone()
+        conn.close()
+        if not row:
+            return self.send_json({"error": "未找到用户"}, 404)
+        self.send_json(
+            {
+                "username": row[0],
+                "created_at": row[1],
+                "registration_ip": row[2] or "",
+                "last_login_ip": row[3] or "",
+                "last_login_at": row[4] or "",
+            }
+        )
+
+    def api_auth_summary(self):
+        if not require_token(self.headers, role="user"):
+            return self.send_json({"error": "未登录"}, 401)
+        conn = sqlite3.connect(DB_PATH)
+        cur = conn.cursor()
+        cur.execute("SELECT COUNT(*) FROM users WHERE role!='admin'")
+        user_count = cur.fetchone()[0]
+        cur.execute("SELECT COUNT(DISTINCT author_name) FROM diaries")
+        poster_count = cur.fetchone()[0]
+        cur.execute("SELECT COUNT(*) FROM messages_user")
+        user_messages = cur.fetchone()[0]
+        conn.close()
+        self.send_json(
+            {
+                "user_count": user_count,
+                "poster_count": poster_count,
+                "user_messages": user_messages,
+            }
+        )
+
+    # --- Secret zone
+    def api_secret_diaries(self):
+        session = require_token(self.headers, role="user")
+        if not session:
+            return self.send_json({"error": "未登录"}, 401)
+        conn = sqlite3.connect(DB_PATH)
+        cur = conn.cursor()
+        cur.execute(
+            """
+            SELECT id, author_name, title, content, is_public, created_at
+            FROM diaries
+            WHERE is_public=1 OR author_name=?
+            ORDER BY created_at DESC
+            """,
+            (session["username"],),
         )
         items = [
             {
@@ -345,6 +506,7 @@ class GardenHandler(SimpleHTTPRequestHandler):
                 "content": row[3],
                 "is_public": bool(row[4]),
                 "created_at": row[5],
+                "can_edit": row[1] == session["username"],
             }
             for row in cur.fetchall()
         ]
@@ -352,10 +514,11 @@ class GardenHandler(SimpleHTTPRequestHandler):
         self.send_json({"items": items})
 
     def api_secret_create_diary(self):
-        if not require_token(self.headers, role="secret"):
+        session = require_token(self.headers, role="user")
+        if not session:
             return self.send_json({"error": "未登录"}, 401)
         data = self.json_body()
-        author = (data.get("author") or "匿名").strip()[:24]
+        author = session["username"]
         title = (data.get("title") or "无题").strip()[:80]
         content = (data.get("content") or "").strip()
         is_public = 1 if data.get("is_public") else 0
@@ -372,12 +535,21 @@ class GardenHandler(SimpleHTTPRequestHandler):
         self.send_json({"message": "已种下一朵花"}, 201)
 
     def api_secret_update_diary(self, path):
-        if not require_token(self.headers, role="secret"):
+        session = require_token(self.headers, role="user")
+        if not session:
             return self.send_json({"error": "未登录"}, 401)
         diary_id = path.rsplit("/", 1)[-1]
-        data = self.json_body()
         conn = sqlite3.connect(DB_PATH)
         cur = conn.cursor()
+        cur.execute("SELECT author_name FROM diaries WHERE id=?", (diary_id,))
+        owner = cur.fetchone()
+        if not owner:
+            conn.close()
+            return self.send_json({"error": "未找到日记"}, 404)
+        if owner[0] != session["username"]:
+            conn.close()
+            return self.send_json({"error": "无权编辑他人日记"}, 403)
+        data = self.json_body()
         cur.execute(
             "UPDATE diaries SET title=?, content=?, is_public=?, updated_at=CURRENT_TIMESTAMP WHERE id=?",
             (
@@ -392,23 +564,40 @@ class GardenHandler(SimpleHTTPRequestHandler):
         self.send_json({"message": "日记已更新"})
 
     def api_secret_delete_diary(self, path):
-        if not require_token(self.headers, role="secret"):
+        session = require_token(self.headers, role="user")
+        if not session:
             return self.send_json({"error": "未登录"}, 401)
         diary_id = path.rsplit("/", 1)[-1]
         conn = sqlite3.connect(DB_PATH)
         cur = conn.cursor()
+        cur.execute("SELECT author_name FROM diaries WHERE id=?", (diary_id,))
+        owner = cur.fetchone()
+        if not owner:
+            conn.close()
+            return self.send_json({"error": "未找到日记"}, 404)
+        if owner[0] != session["username"]:
+            conn.close()
+            return self.send_json({"error": "无权删除他人日记"}, 403)
         cur.execute("DELETE FROM diaries WHERE id=?", (diary_id,))
         conn.commit()
         conn.close()
         self.send_json({"message": "删除完成"})
 
     def api_secret_messages(self):
-        if not require_token(self.headers, role="secret"):
+        session = require_token(self.headers, role="user")
+        if not session:
             return self.send_json({"error": "未登录"}, 401)
         conn = sqlite3.connect(DB_PATH)
         cur = conn.cursor()
         cur.execute(
-            "SELECT id, from_name, to_name, content, created_at FROM messages_private ORDER BY created_at DESC LIMIT 80"
+            """
+            SELECT id, from_name, to_name, content, created_at
+            FROM messages_private
+            WHERE from_name=? OR to_name=?
+            ORDER BY created_at DESC
+            LIMIT 80
+            """,
+            (session["username"], session["username"]),
         )
         items = [
             {
@@ -424,16 +613,21 @@ class GardenHandler(SimpleHTTPRequestHandler):
         self.send_json({"items": items})
 
     def api_secret_post_message(self):
-        if not require_token(self.headers, role="secret"):
+        session = require_token(self.headers, role="user")
+        if not session:
             return self.send_json({"error": "未登录"}, 401)
         data = self.json_body()
-        from_name = (data.get("from_name") or "我").strip()[:20]
+        from_name = session["username"]
         to_name = (data.get("to_name") or "你").strip()[:20]
         content = (data.get("content") or "").strip()
         if not content or len(content) > 300:
             return self.send_json({"error": "小纸条不能为空，且不超过300字"}, 400)
         conn = sqlite3.connect(DB_PATH)
         cur = conn.cursor()
+        cur.execute("SELECT 1 FROM users WHERE username=?", (to_name,))
+        if not cur.fetchone():
+            conn.close()
+            return self.send_json({"error": "只允许给已注册用户发送站内信"}, 400)
         cur.execute(
             "INSERT INTO messages_private (from_name, to_name, content) VALUES (?, ?, ?)",
             (from_name, to_name, content),
@@ -442,8 +636,30 @@ class GardenHandler(SimpleHTTPRequestHandler):
         conn.close()
         self.send_json({"message": "纸条送达"}, 201)
 
+    def api_secret_post_user_message(self):
+        session = require_token(self.headers, role="user")
+        if not session:
+            return self.send_json({"error": "未登录"}, 401)
+        data = self.json_body()
+        content = (data.get("content") or "").strip()
+        if not content or len(content) > 260:
+            return self.send_json({"error": "留言不能为空，且不超过260字"}, 400)
+        safe_content = content.replace("<", "&lt;").replace(">", "&gt;")
+        conn = sqlite3.connect(DB_PATH)
+        cur = conn.cursor()
+        cur.execute(
+            "INSERT INTO messages_user (username, content) VALUES (?, ?)",
+            (session["username"], safe_content),
+        )
+        conn.commit()
+        conn.close()
+        self.send_json({"message": "留言已发布到游客区"}, 201)
+
     # --- Admin endpoints
     def api_admin_login(self):
+        ip = self.client_address[0]
+        if not check_login_window(ip, "admin_login"):
+            return self.send_json({"error": "尝试太多，请稍后再试"}, 429)
         data = self.json_body()
         username = data.get("username", "")
         password = data.get("password", "")
@@ -536,6 +752,85 @@ class GardenHandler(SimpleHTTPRequestHandler):
         conn.commit()
         conn.close()
         self.send_json({"message": "已删除纸条"})
+
+    def api_admin_messages_public(self):
+        if not require_token(self.headers, role="admin"):
+            return self.send_json({"error": "未授权"}, 401)
+        conn = sqlite3.connect(DB_PATH)
+        cur = conn.cursor()
+        cur.execute(
+            "SELECT id, nickname, content, is_hidden, created_at FROM messages_public ORDER BY created_at DESC LIMIT 100"
+        )
+        items = [
+            {
+                "id": row[0],
+                "nickname": row[1] or "匿名",
+                "content": row[2],
+                "is_hidden": bool(row[3]),
+                "created_at": row[4],
+            }
+            for row in cur.fetchall()
+        ]
+        conn.close()
+        self.send_json({"items": items})
+
+    def api_admin_update_public_message(self, path):
+        if not require_token(self.headers, role="admin"):
+            return self.send_json({"error": "未授权"}, 401)
+        msg_id = path.rsplit("/", 1)[-1]
+        data = self.json_body()
+        conn = sqlite3.connect(DB_PATH)
+        cur = conn.cursor()
+        cur.execute(
+            "UPDATE messages_public SET is_hidden=? WHERE id=?",
+            (1 if data.get("is_hidden") else 0, msg_id),
+        )
+        conn.commit()
+        conn.close()
+        self.send_json({"message": "状态已更新"})
+
+    def api_admin_messages_private(self):
+        if not require_token(self.headers, role="admin"):
+            return self.send_json({"error": "未授权"}, 401)
+        conn = sqlite3.connect(DB_PATH)
+        cur = conn.cursor()
+        cur.execute(
+            "SELECT id, from_name, to_name, content, created_at FROM messages_private ORDER BY created_at DESC LIMIT 120"
+        )
+        items = [
+            {
+                "id": row[0],
+                "from_name": row[1],
+                "to_name": row[2],
+                "content": row[3],
+                "created_at": row[4],
+            }
+            for row in cur.fetchall()
+        ]
+        conn.close()
+        self.send_json({"items": items})
+
+    def api_admin_users(self):
+        if not require_token(self.headers, role="admin"):
+            return self.send_json({"error": "未授权"}, 401)
+        conn = sqlite3.connect(DB_PATH)
+        cur = conn.cursor()
+        cur.execute(
+            "SELECT username, role, registration_ip, created_at, last_login_ip, last_login_at FROM users ORDER BY created_at DESC"
+        )
+        items = [
+            {
+                "username": row[0],
+                "role": row[1],
+                "registration_ip": row[2] or "",
+                "created_at": row[3],
+                "last_login_ip": row[4] or "",
+                "last_login_at": row[5] or "",
+            }
+            for row in cur.fetchall()
+        ]
+        conn.close()
+        self.send_json({"items": items})
 
 
 def run():

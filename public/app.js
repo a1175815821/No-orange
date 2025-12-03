@@ -11,7 +11,7 @@ const PAGE = document.currentScript?.dataset.page || "public";
 
 // 持久化 token，便于在各自页面中自动恢复登录态
 const state = {
-  secretToken: localStorage.getItem("secretToken") || "",
+  userToken: localStorage.getItem("userToken") || "",
   adminToken: localStorage.getItem("adminToken") || "",
 };
 
@@ -74,6 +74,24 @@ async function loadPublicMessages() {
     .join("");
 }
 
+async function loadPublicUserMessages() {
+  const res = await api("/api/public/user-messages");
+  if (!res.ok) return;
+  const data = await res.json();
+  const list = data.items || [];
+  const wrap = document.getElementById("userMessageList");
+  if (!wrap) return;
+  wrap.innerHTML = list
+    .map(
+      (m) => `
+        <div class="message-item">
+          <div>${m.content}</div>
+          <div class="message-meta">${m.username} · ${m.created_at}</div>
+        </div>`
+    )
+    .join("");
+}
+
 function setupPublicMessageForm() {
   const form = document.getElementById("publicMessageForm");
   if (!form) return; // 仅 A 页面需要
@@ -108,44 +126,72 @@ function setupSecretModal() {
   });
 }
 
-function requireSecret() {
-  return state.secretToken;
-}
-
 function requireAdmin() {
   return state.adminToken;
 }
 
-function bindSecretLogin() {
-  const form = document.getElementById("secretLoginForm");
+function requireUser() {
+  return state.userToken;
+}
+
+function bindAuthForms() {
+  const loginForm = document.getElementById("secretLoginForm");
+  const registerForm = document.getElementById("registerForm");
   const hint = document.getElementById("secretHint");
-  if (!form || !hint) return;
-  form.addEventListener("submit", async (e) => {
-    e.preventDefault();
-    const { password } = Object.fromEntries(new FormData(form).entries());
-    const res = await api("/api/secret/login", {
-      method: "POST",
-      body: JSON.stringify({ password }),
+  const regHint = document.getElementById("registerHint");
+  if (loginForm && hint) {
+    loginForm.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const payload = Object.fromEntries(new FormData(loginForm).entries());
+      const res = await api("/api/auth/login", {
+        method: "POST",
+        body: JSON.stringify(payload),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        hint.textContent = data.error || "登录失败";
+        return;
+      }
+      state.userToken = data.token;
+      localStorage.setItem("userToken", data.token);
+      hint.textContent = `欢迎回来，${data.username}`;
+      document.getElementById("secretModal")?.classList.remove("active");
+      loadSecretArea();
+      loadProfile();
     });
-    const data = await res.json();
-    if (!res.ok) {
-      hint.textContent = data.error || "密码错误";
-      return;
-    }
-    state.secretToken = data.token;
-    localStorage.setItem("secretToken", data.token);
-    document.getElementById("secretModal").classList.remove("active");
-    hint.textContent = "欢迎回到花园";
-    loadSecretArea();
-  });
+  }
+
+  if (registerForm && regHint) {
+    registerForm.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const payload = Object.fromEntries(new FormData(registerForm).entries());
+      const res = await api("/api/auth/register", {
+        method: "POST",
+        body: JSON.stringify(payload),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        regHint.textContent = data.error || "注册失败";
+        return;
+      }
+      state.userToken = data.token;
+      localStorage.setItem("userToken", data.token);
+      regHint.textContent = `注册成功，欢迎 ${data.username}`;
+      document.getElementById("secretModal")?.classList.remove("active");
+      loadSecretArea();
+      loadProfile();
+    });
+  }
 }
 
 async function loadSecretArea() {
-  if (!requireSecret()) return;
+  if (!requireUser()) return;
   const res = await api("/api/secret/diaries", {
-    headers: { Authorization: `Bearer ${state.secretToken}` },
+    headers: { Authorization: `Bearer ${state.userToken}` },
   });
-  if (!res.ok) return;
+  if (!res.ok) {
+    return;
+  }
   const data = await res.json();
   const list = data.items || [];
   const wrap = document.getElementById("secretDiaryList");
@@ -161,10 +207,14 @@ async function loadSecretArea() {
         <div class="muted">${item.created_at} · ${item.author}</div>
         <p>${item.content}</p>
         <div class="tools">
-          <span class="tool" data-action="toggle" data-id="${item.id}" data-public="${item.is_public ? 1 : 0}">${
-            item.is_public ? "取消公开" : "标记公开"
-          }</span>
-          <span class="tool danger" data-action="delete" data-id="${item.id}">删除</span>
+          ${
+            item.can_edit
+              ? `<span class="tool" data-action="toggle" data-id="${item.id}" data-public="${item.is_public ? 1 : 0}">${
+                  item.is_public ? "取消公开" : "标记公开"
+                }</span>
+                <span class="tool danger" data-action="delete" data-id="${item.id}" data-can-edit="true">删除</span>`
+              : '<span class="tool muted">仅作者可操作</span>'
+          }
         </div>
       `;
       wrap.appendChild(div);
@@ -214,6 +264,107 @@ async function loadAdminDiaries() {
   bindAdminToggle();
 }
 
+async function loadAdminMessages() {
+  const pubWrap = document.getElementById("adminMessages");
+  const priWrap = document.getElementById("adminPrivateMessages");
+  if (!requireAdmin() || (!pubWrap && !priWrap)) return;
+  const [pubRes, priRes] = await Promise.all([
+    api("/api/admin/messages/public", { headers: { Authorization: `Bearer ${state.adminToken}` } }),
+    api("/api/admin/messages/private", { headers: { Authorization: `Bearer ${state.adminToken}` } }),
+  ]);
+  if (pubWrap && pubRes.ok) {
+    const data = await pubRes.json();
+    pubWrap.innerHTML = (data.items || [])
+      .map(
+        (m) => `
+          <div class="admin-row">
+            <div>${m.content}</div>
+            <div class="muted">${m.nickname} · ${m.created_at}</div>
+            <div class="action-group" data-id="${m.id}" data-hidden="${m.is_hidden ? 1 : 0}">
+              <button class="btn soft" data-message-action="toggle">${m.is_hidden ? "已隐藏" : "显示中"}</button>
+              <button class="btn ghost" data-message-action="delete">删除</button>
+            </div>
+          </div>`
+      )
+      .join("");
+  }
+
+  if (priWrap && priRes.ok) {
+    const data = await priRes.json();
+    priWrap.innerHTML = (data.items || [])
+      .map(
+        (m) => `
+          <div class="admin-row">
+            <div>${m.content}</div>
+            <div class="muted">${m.from_name} → ${m.to_name} · ${m.created_at}</div>
+            <button class="btn ghost" data-private-id="${m.id}">删除</button>
+          </div>`
+      )
+      .join("");
+  }
+}
+
+async function loadAdminUsers() {
+  const wrap = document.getElementById("adminUsers");
+  if (!wrap || !requireAdmin()) return;
+  const res = await api("/api/admin/users", {
+    headers: { Authorization: `Bearer ${state.adminToken}` },
+  });
+  if (!res.ok) return;
+  const data = await res.json();
+  wrap.innerHTML = (data.items || [])
+    .map(
+      (u) => `
+        <div class="admin-row">
+          <div>${u.username} <span class="badge">${u.role}</span></div>
+          <div class="muted">注册: ${u.created_at} @ ${u.registration_ip || "-"}</div>
+          <div class="muted">最近登录: ${u.last_login_at || "-"} ${u.last_login_ip ? "@" + u.last_login_ip : ""}</div>
+        </div>`
+    )
+    .join("");
+}
+
+function bindAdminMessageActions() {
+  const pubWrap = document.getElementById("adminMessages");
+  if (pubWrap) {
+    pubWrap.addEventListener("click", async (e) => {
+      const action = e.target.dataset.messageAction;
+      const holder = e.target.closest(".action-group");
+      if (!action || !holder) return;
+      const id = holder.dataset.id;
+      if (action === "toggle") {
+        const isHidden = holder.dataset.hidden === "1" ? 0 : 1;
+        await api(`/api/admin/messages/public/${id}`, {
+          method: "PUT",
+          headers: { Authorization: `Bearer ${state.adminToken}` },
+          body: JSON.stringify({ is_hidden: isHidden }),
+        });
+      } else if (action === "delete") {
+        await api(`/api/admin/messages/public/${id}`, {
+          method: "DELETE",
+          headers: { Authorization: `Bearer ${state.adminToken}` },
+        });
+      }
+      loadAdminMessages();
+      loadStats();
+    });
+  }
+
+  const priWrap = document.getElementById("adminPrivateMessages");
+  if (priWrap) {
+    priWrap.addEventListener("click", async (e) => {
+      const id = e.target.dataset.privateId;
+      if (!id) return;
+      await api(`/api/admin/messages/private/${id}`, {
+        method: "DELETE",
+        headers: { Authorization: `Bearer ${state.adminToken}` },
+      });
+      loadAdminMessages();
+      loadStats();
+    });
+  }
+}
+
 function bindDiaryActions() {
   const list = document.getElementById("secretDiaryList");
   if (!list) return;
@@ -222,15 +373,16 @@ function bindDiaryActions() {
     if (!action) return;
     const id = e.target.dataset.id;
     if (action === "delete") {
+      if (!e.target.dataset.canEdit) return;
       await api(`/api/secret/diaries/${id}`, {
         method: "DELETE",
-        headers: { Authorization: `Bearer ${state.secretToken}` },
+        headers: { Authorization: `Bearer ${state.userToken}` },
       });
     } else if (action === "toggle") {
       const isPublic = e.target.dataset.public === "1" ? 0 : 1;
       await api(`/api/secret/diaries/${id}`, {
         method: "PUT",
-        headers: { Authorization: `Bearer ${state.secretToken}` },
+        headers: { Authorization: `Bearer ${state.userToken}` },
         body: JSON.stringify({ is_public: isPublic }),
       });
     }
@@ -261,15 +413,15 @@ function bindDiaryForm() {
   if (!form || !hint) return;
   form.addEventListener("submit", async (e) => {
     e.preventDefault();
-    if (!requireSecret()) {
-      hint.textContent = "请先解锁花园";
+    if (!requireUser()) {
+      hint.textContent = "请先登录/注册";
       return;
     }
     const data = Object.fromEntries(new FormData(form).entries());
     data.is_public = form.is_public.checked;
     const res = await api("/api/secret/diaries", {
       method: "POST",
-      headers: { Authorization: `Bearer ${state.secretToken}` },
+      headers: { Authorization: `Bearer ${state.userToken}` },
       body: JSON.stringify(data),
     });
     const json = await res.json();
@@ -287,14 +439,14 @@ function bindPrivateMessageForm() {
   if (!form || !hint) return;
   form.addEventListener("submit", async (e) => {
     e.preventDefault();
-    if (!requireSecret()) {
-      hint.textContent = "先解锁花园再写纸条";
+    if (!requireUser()) {
+      hint.textContent = "先登录/注册再写纸条";
       return;
     }
     const data = Object.fromEntries(new FormData(form).entries());
     const res = await api("/api/secret/messages", {
       method: "POST",
-      headers: { Authorization: `Bearer ${state.secretToken}` },
+      headers: { Authorization: `Bearer ${state.userToken}` },
       body: JSON.stringify(data),
     });
     const json = await res.json();
@@ -306,10 +458,36 @@ function bindPrivateMessageForm() {
   });
 }
 
+function bindUserMessageForm() {
+  const form = document.getElementById("userMessageForm");
+  const hint = document.getElementById("userMessageHint");
+  if (!form || !hint) return;
+  form.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    if (!requireUser()) {
+      hint.textContent = "登录后才能发布正式留言";
+      return;
+    }
+    const data = Object.fromEntries(new FormData(form).entries());
+    const res = await api("/api/secret/user-messages", {
+      method: "POST",
+      headers: { Authorization: `Bearer ${state.userToken}` },
+      body: JSON.stringify(data),
+    });
+    const json = await res.json();
+    hint.textContent = json.message || json.error;
+    if (res.ok) {
+      form.reset();
+      loadPublicUserMessages();
+      loadProfile();
+    }
+  });
+}
+
 async function loadPrivateMessages() {
-  if (!requireSecret()) return;
+  if (!requireUser()) return;
   const res = await api("/api/secret/messages", {
-    headers: { Authorization: `Bearer ${state.secretToken}` },
+    headers: { Authorization: `Bearer ${state.userToken}` },
   });
   if (!res.ok) return;
   const data = await res.json();
@@ -322,6 +500,25 @@ async function loadPrivateMessages() {
       )
       .join("");
   }
+}
+
+async function loadProfile() {
+  const card = document.getElementById("userProfile");
+  if (!card || !requireUser()) return;
+  const [meRes, statRes] = await Promise.all([
+    api("/api/auth/me", { headers: { Authorization: `Bearer ${state.userToken}` } }),
+    api("/api/auth/summary", { headers: { Authorization: `Bearer ${state.userToken}` } }),
+  ]);
+  if (!meRes.ok || !statRes.ok) return;
+  const me = await meRes.json();
+  const stat = await statRes.json();
+  card.innerHTML = `
+    <div class="subhead">已登录</div>
+    <div class="profile-row"><strong>${me.username}</strong></div>
+    <div class="muted">花园注册人数：${stat.user_count || 0}</div>
+    <div class="muted">写过日记的朋友：${stat.poster_count || 0}</div>
+    <div class="muted">正式留言累计：${stat.user_messages || 0}</div>
+  `;
 }
 
 function bindAdminLogin() {
@@ -345,6 +542,8 @@ function bindAdminLogin() {
     hint.textContent = "进入后台";
     loadStats();
     loadAdminDiaries();
+    loadAdminMessages();
+    loadAdminUsers();
   });
 }
 
@@ -366,10 +565,15 @@ async function loadStats() {
 
 function handleSecretPersistence() {
   // 只在对应页面恢复，避免不必要的 API 调用
-  if (PAGE === "secret" && state.secretToken) loadSecretArea();
+  if (PAGE === "secret" && state.userToken) {
+    loadSecretArea();
+    loadProfile();
+  }
   if (PAGE === "admin" && state.adminToken) {
     loadStats();
     loadAdminDiaries();
+    loadAdminMessages();
+    loadAdminUsers();
   }
 }
 
@@ -378,6 +582,7 @@ function init() {
   if (PAGE === "public") {
     loadPublicDiaries();
     loadPublicMessages();
+    loadPublicUserMessages();
     setupPublicMessageForm();
     const refresh = document.getElementById("refreshDiaries");
     if (refresh) refresh.addEventListener("click", loadPublicDiaries);
@@ -386,16 +591,20 @@ function init() {
   // B 页面：需要密码的私密写作与纸条
   if (PAGE === "secret") {
     setupSecretModal();
-    bindSecretLogin();
+    bindAuthForms();
     bindDiaryForm();
     bindPrivateMessageForm();
+    bindUserMessageForm();
   }
 
   // C 页面：后台管理
   if (PAGE === "admin") {
     bindAdminLogin();
+    bindAdminMessageActions();
     if (state.adminToken) {
       loadAdminDiaries();
+      loadAdminMessages();
+      loadAdminUsers();
     }
   }
 
